@@ -13,6 +13,7 @@ go at the top of each section.
 
 ## Milestones
 
+- **2026-08-09** — 新增样品文档:`docs/样品清单.md`(约16件精简清单)+ `docs/样品拿货思路.md`(拿货原则/取舍/实际进货记录待填 —— 等创始人发戒指照片登记)。
 - **2026-08-09** — 说明书 v1.2:补齐三块调研短板 —— 巴西钻戒需求数据(结婚95万对/年、钻戒均价R$4,900、节点体量)、同行价格全面对比(培育 vs 天然 vs 莫桑,三方同规格表)、本地培育钻品牌全景(GAEM/Naïve/Panna/Vivara/Pandora 等 + 修正 Only Diamonds/Ayaris 引用)。关键结论:价格是入场券非护城河,差异化靠 IP+情感+证书透明。
 - **2026-08-09** — 说明书 v1.1:敲定价格带(求婚 R$2,800–20,000/1ct 18K≈R$8,500;日常 R$800起)、英雄单品(单钻耳钉 ponto de luz)、主理人本人出镜、出图主力用 Riverflow(Lovart 待网络放行)。
 - **2026-08-09** — 接入 Lovart AI skill(`.claude/skills/lovart-api/`),密钥走 `.env`(gitignore),配置见 `docs/lovart-setup.md`;端到端测试待重开 session + 填新密钥后进行。
