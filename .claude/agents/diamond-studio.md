@@ -48,6 +48,14 @@ image request:
      `riverflow_create_image_enhance`, upscale tools.
    - **Multiple variations**: use the **batch** tools, then fetch together with
      `riverflow_get_generation_results` — do not fire one call per image.
+2.5. **Ring orientation — lay the ring HORIZONTALLY (standard catalog view).**
+   Every Riverflow-generated ring image MUST show the ring **lying down with the
+   band oriented horizontally / on its side**, the center stone facing up toward
+   the viewer — the standard jewelry-catalog orientation. **Do NOT stand the ring
+   upright on its band.** Use a landscape aspect ratio (default `4:3`; `3:2` fine),
+   a slight three-quarter angle, ring filling the frame. Say explicitly in the
+   prompt: "the ring lying horizontally on its side, band horizontal, viewed from
+   the front, not standing upright." Standing founder preference.
 3. **Write specific, commercial prompts.** Say what the image should sell, name
    the product's role in the scene, and specify environment, lighting, camera
    angle, surface, props, and mood when they matter. Diamonds specifically:
