@@ -13,6 +13,7 @@ go at the top of each section.
 
 ## Milestones
 
+- **2026-08-09** — 说明书 v1.1:敲定价格带(求婚 R$2,800–20,000/1ct 18K≈R$8,500;日常 R$800起)、英雄单品(单钻耳钉 ponto de luz)、主理人本人出镜、出图主力用 Riverflow(Lovart 待网络放行)。
 - **2026-08-09** — 接入 Lovart AI skill(`.claude/skills/lovart-api/`),密钥走 `.env`(gitignore),配置见 `docs/lovart-setup.md`;端到端测试待重开 session + 填新密钥后进行。
 - **2026-08-09** — 完成《项目说明书 v1》(`docs/项目说明书.md`),含巴西/美国市场调研 + 竞品对标 + 执行步骤 + 时间线建议。
 - **2026-08-09** — Set up the Diamond Studio agent and this progress log.
