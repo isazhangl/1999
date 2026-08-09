@@ -79,7 +79,34 @@ python3 .claude/skills/lovart-api/scripts/agent_skill.py projects --json
 ## 验证状态
 
 - ✅ 脚本已就位,CLI 全部子命令可列出;`config`/`projects` 无 key 时优雅返回本地状态。
-- ⏳ **端到端生成测试待完成** —— 需满足:① `.env` 填入**新**密钥(见下）;② **重开 session**(skill 不热加载)。之后跑一次最小生成(如 `chat --prompt "a simple round brilliant diamond on white background" --json --download`)验证整条链路。
+- ✅ 密钥可正确从 `.env` 加载(`set -a; source .env; set +a`),脚本认证逻辑正常。
+- ❌ **端到端生成在当前"云端/web"环境跑不通** —— **不是配置问题,是网络出口策略拦截。**
+
+### 关键发现:出口代理封锁了 Lovart 域名
+
+在 Claude Code 云端环境里执行 `query-mode` / `chat`,连接被环境的 egress 代理拒绝:
+
+```
+host: lgw.lovart.ai:443
+kind: connect_rejected
+detail: gateway answered 403 to CONNECT (policy denial)
+```
+
+即组织的网络策略**不允许访问 Lovart 的 API 域名 `lgw.lovart.ai`**(下载资源域名 `assets-persist.lovart.ai` 大概率同样受限)。按环境规范,**此类 403 策略拦截不可绕过**(不得关闭 TLS、不得改路由),只能上报。
+
+**要真正跑通,二选一:**
+
+1. **放行域名**:在 Claude Code 环境的网络策略里,把 `lgw.lovart.ai`、`assets-persist.lovart.ai`(以及必要时 `www.lovart.ai`)加入允许列表。参考 https://code.claude.com/docs/en/claude-code-on-the-web 的网络策略配置;或换用"允许全部出站"的环境。
+2. **本地跑**:在**本机**的 Claude Code(桌面/CLI)里用这个 skill —— 本地没有该出口限制,`.env` + skill 直接可用。
+
+配置好网络后,最小验证:
+```bash
+set -a; source .env; set +a
+python3 .claude/skills/lovart-api/scripts/agent_skill.py query-mode          # 先验认证+连通
+python3 .claude/skills/lovart-api/scripts/agent_skill.py chat \
+  --prompt "a round brilliant lab-grown diamond on white background, studio macro" \
+  --json --download                                                          # 再验生成
+```
 
 ## ⚠️ 安全提醒
 
