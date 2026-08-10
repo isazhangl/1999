@@ -41,6 +41,10 @@ Editorial macro jewelry photograph. A single large pink calla lily fills most of
 | 花瓣**变布料/绸缎质感** | 玫瑰 v4 | 玫瑰多层花瓣复杂,模型易糊成织物 | 优先**造型简洁的花**(马蹄莲/郁金香/兰花);玫瑰慎用 |
 | 变成**上手双戒** | 玫瑰 v2 | "nestled/cradled" + reference 把模型带向手部 | 明确 `NO hands, NO fingers, only the flower and one ring` |
 | 戒指**过大**(比例失真) | 第一批 4 张 | 未约束比例 | 加 `REALISTICALLY SMALL, ~1/6–1/7 花尺寸, do NOT oversize` |
+| 戒指**立起来 / 无支撑** | 桃子 v2、宽景 v1 | 未指定卧姿与支撑 | `the ring lies reclined and FLAT, resting on its side against the fruit with a clear point of support, NOT upright, NOT floating` |
+| 产品**直面镜头**(呆板) | 宽景 v2 | 未指定角度 | 场景图一律 `turned at a three-quarter angle to camera, do NOT face the camera dead-on` |
+| 道具**不连贯**(桌上一滩巧克力,桃子上却没有) | 宽景 v1 | 未约束物理来源 | `chocolate drips down the side of the peach onto the surface forming a CONNECTED puddle (physically continuous, flows from the fruit), not a separate pool` |
+| 酱汁/巧克力**铺太满太刻意** | 桃子 v2 | 未限量 | `chocolate applied partially and naturally, not covering everything` |
 
 ---
 
