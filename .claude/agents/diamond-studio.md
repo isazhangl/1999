@@ -56,6 +56,19 @@ image request:
    a slight three-quarter angle, ring filling the frame. Say explicitly in the
    prompt: "the ring lying horizontally on its side, band horizontal, viewed from
    the front, not standing upright." Standing founder preference.
+2.6. **At least 3 standard angles per product.** Every product MUST get a set of
+   ≥3 white-background landscape (4:3) shots from different standard viewpoints,
+   saved as `<barcode>-1/-2/-3.png`:
+   - `-1` **hero, three-quarter angle** (ring lying horizontal, slight 3/4 turn);
+   - `-2` **top-down / face-up** (straight down on the stone — shows cut outline &
+     setting);
+   - `-3` **straight side profile** (shows band height & prong silhouette);
+   - `-4` **macro detail** (optional — stone facets / prongs close-up).
+   Keep lighting, white background and style identical across the set so they read
+   as one product. Note: angles beyond the reference photo are AI-inferred, so the
+   unseen sides are plausible reconstructions, not exact captures — flag this to
+   the user. For pendants/earrings/bracelets use the analogous set (front, angled,
+   detail).
 3. **Write specific, commercial prompts.** Say what the image should sell, name
    the product's role in the scene, and specify environment, lighting, camera
    angle, surface, props, and mood when they matter. Diamonds specifically:
