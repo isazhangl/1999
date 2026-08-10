@@ -31,6 +31,26 @@ Editorial macro jewelry photograph. A single large pink calla lily fills most of
 - **反 AI 感三件套**:歪着偏心(off-center/tilted/NOT centered)+ 浅景深 + 自然光影/露珠/小瑕疵。
 - **大理石台面 + 纯白底**:高级、干净。
 
+### ✅ #002 · 桃子 + 巧克力"感官系" × #1 祖母绿三石戒(生活场景图)
+
+- **日期**:2026-08-10
+- **用途**:社媒/生活场景图(高级感官系,换调性)
+- **模型 / 画幅**:nano-banana-2 · 4:5 · 2K
+- **参考图**:#1 真实商品照(`6bf16af5-…`)
+- **成图 asset**:`2ddb4432-4467-4080-b22d-b4d0e5702dbf`(v5)
+
+**Prompt(原文)**
+```
+High-end gourmet still-life, WIDE medium shot with lots of clean negative space (NOT a close-up) — the whole tabletop arrangement is visible and the ring is just ONE SMALL element within it. SCALE IS CRITICAL: a real engagement ring is only about 2 cm wide and the peach is about 7 cm, so the ring must appear that small — roughly one-third the width of the peach half and occupying only about 10% of the frame width. Do NOT oversize the ring; if in doubt make it smaller. SCENE: a halved ripe peach with glossy dark chocolate over its cut face, dripping down the side into a CONNECTED puddle on the white marble surface (the puddle clearly flows from the fruit, physically continuous). The diamond ring from the reference lies RECLINED on its side, rotated about 30 degrees back on its horizontal axis so it leans back and lies low — NOT standing upright, NOT facing the camera dead-on — resting with a clear support point against the base of the peach, turned to a three-quarter angle. Scale-anchor / styling props: one whole ripe peach and a few shards of dark chocolate nearby. RING design IDENTICAL to reference: a THREE-STONE ring, EXACTLY three diamonds total (one emerald-cut step-cut center + exactly ONE tapered baguette side stone on each side), double claw prongs, white gold band; do NOT add extra stones. Cinematic dramatic lighting, hyper-realistic glossy wet textures, sharp reflections, shallow depth of field with the small ring in crisp focus. Pure white background. Portrait orientation.
+```
+
+**为什么成功(可复用要点)** —— 经过 v1→v5 五轮迭代才收敛,关键四招:
+- **比例**:`WIDE shot` + 尺度锚点(整桃)+ 明确尺寸/占比(`~2cm ring, ~7cm peach, ~10% frame width, do NOT oversize`)→ 戒指终于显小。
+- **平放**:`RECLINED, rotated ~30° back on its horizontal axis, lies low, NOT upright`→ 压住"立正"倾向。
+- **不正对**:`three-quarter angle, NOT facing the camera dead-on`。
+- **物理连贯**:`chocolate drips down into a CONNECTED puddle that flows from the fruit`→ 桌上那滩有来源。
+- **3 石锁定**:`EXACTLY three diamonds … do NOT add extra stones`(拉宽后模型更稳,数量也更容易对)。
+
 ---
 
 ## 二、避坑（失败教训)
@@ -52,9 +72,13 @@ Editorial macro jewelry photograph. A single large pink calla lily fills most of
 
 > 每积累几条成功案例,我把共性规律提炼到这里。
 
-- **花型复杂度 = 成败关键**:简洁花(马蹄莲)成功率高;复杂多瓣花(玫瑰)易糊 + 易乱加钻。
-- **戒指忠实度**:单张 reference 压不住镶嵌细节 → 重点款用**多角度真图**参考。
-- **去 AI 感通用杠杆**:真实比例 + 不对称摆放 + 浅景深 + 自然光影/瑕疵(详见 `出图流程与环境配置.md` 第四之三节配方)。
+- **花型/物体复杂度 = 成败关键**:简洁物体(马蹄莲、桃子)成功率高;复杂多瓣花(玫瑰)易糊成布料 + 易乱加钻。
+- **戒指忠实度**:单张 reference 压不住镶嵌细节(常见"3 石→5 石")→ 重点款用**多角度真图**参考;每张必做**数钻自检**。
+- **比例控制(生活场景图核心)**:AI 默认把首饰画大,靠 ①画面拉宽 ②尺度锚点(已知尺寸日常物)③写实际尺寸+占比(`~2cm, ~10% frame width`)。拉宽同时还顺带**降低乱加钻**——远景下模型更稳。
+- **摆放真实感**:戒指要**侧躺/横轴后仰(~30°)有支撑**,别立正、别悬浮、别正对镜头(场景图一律 three-quarter)。
+- **物理连贯**:溢出物(巧克力/液体)必须**有来源**,桌面的一滩要从主体滴落而来。
+- **去 AI 感通用杠杆**:真实比例 + 不对称摆放 + 浅景深 + 自然光影/瑕疵(配方详见 `出图流程与环境配置.md` 第四之三节)。
+- **迭代规律**:一个新场景常需 3–5 轮收敛(比例→摆放→连贯→数钻),成功后即收录本库,避免重复踩坑。
 
 ---
 
