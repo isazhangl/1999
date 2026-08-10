@@ -31,3 +31,6 @@ venv/
 # Temp
 tmp/
 *.tmp
+
+# local reference photos (not committed)
+refs/
