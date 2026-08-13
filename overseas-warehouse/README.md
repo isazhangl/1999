@@ -14,12 +14,14 @@
 | 业务 | 第三方仓储、货运物流(fulfillment) |
 | 仓库 | São José dos Campos - Galpão 02(约 900 m²) |
 | 合规 | ANVISA 化妆品/卫生用品/香水 经销进口资质(办理中,DSL Consult) |
+| 工签 | 工作居留签证 1 张(办理中,Visto Brasil) |
 
 ## 目录
 
 - [公司信息](docs/公司信息.md) — 注册、税制、会计
 - [仓库租赁](docs/仓库租赁.md) — 租房合同、验收、消防、钥匙交付
 - [合规-ANVISA](docs/合规-ANVISA.md) — DSL 合规改造服务
+- [工签办理](docs/工签办理.md) — Visto Brasil 工作居留签证
 - [记账](docs/记账.md) — 开办费用明细
 
 ## 资料来源
@@ -28,6 +30,8 @@
 <https://drive.google.com/drive/folders/1tNcdPNtIXCVJRFashHkYcvQQLGmEO9g->
 
 - 📁 公司文件 · 📁 房屋文件 · 📁 Anvisa改造 · 📊 记账
+
+工签合同为单独上传的 PDF(尚未在上述 Drive 文件夹中)。
 
 > 本目录是对上述原件的中文整理与索引;原件(合同、证照等)以 Drive 为准。
 > 更新于 2026-08-13。
