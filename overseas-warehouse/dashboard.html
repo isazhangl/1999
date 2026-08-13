@@ -212,6 +212,22 @@
   .g-milestone{grid-row:1; align-self:center; justify-self:start; font-family:var(--font-mono); font-size:11px; font-weight:700}
   .g-milestone.opt{color:var(--done)} .g-milestone.pes{color:var(--urgent)}
 
+  /* task detail */
+  .g-detail{margin-top:18px; display:grid; grid-template-columns:repeat(2,1fr); gap:16px}
+  @media(max-width:760px){.g-detail{grid-template-columns:1fr}}
+  .ph{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:14px 15px}
+  .ph-h{display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:650; margin-bottom:3px}
+  .ph-h .tag{font-family:var(--font-mono); font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:5px; letter-spacing:.03em}
+  .ph-h .tag.p0{background:var(--locked-wash); color:var(--locked)}
+  .ph-h .tag.p1,.ph-h .tag.p2,.ph-h .tag.p3{background:var(--accent-wash); color:var(--accent)}
+  .ph-goal{font-size:12px; color:var(--ink-soft); margin:0 0 10px; line-height:1.5}
+  .ph-dur{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-faint); margin-left:auto; white-space:nowrap}
+  .ph ul{list-style:none; margin:0; padding:0; display:grid; gap:9px}
+  .ph li{font-size:12.5px; line-height:1.45}
+  .ph li b{color:var(--ink); font-weight:650}
+  .ph li span{display:block; color:var(--ink-soft); margin-top:1px}
+  .ph li .can{display:inline-block; font-family:var(--font-mono); font-size:9.5px; font-weight:700; color:var(--done); background:var(--done-wash); border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:1px}
+
   @media(prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 </style>
 
@@ -465,7 +481,52 @@
         <span><i style="background:var(--accent)"></i>乐观周期(审核按 30 天)</span>
         <span><i style="background:var(--pending-wash);border:1px dashed var(--pending)"></i>保守延伸(审核 60–90 天)</span>
       </div>
-      <p class="g-note">三模块<b>串行依赖</b>:AFE 需 LS 现场检查出具满意报告为前提,LS 又需建筑按 PBA 批准方案改好。<b>压缩关键</b>:PBA 审核等待期内,让 DSL 并行备好 LS 材料 + AFE 的 ANVISA 预注册,并同步完成物业改造。<b>起跑发令枪</b>:尽快把可编辑 <span class="mono">.dwg</span> 平面图给 DSL。整体主线约 <b>4–8 个月</b>,规划建议留至 2027 Q1。</p>
+      <p class="g-note">三模块<b>串行依赖</b>:AFE 需 LS 现场检查出具满意报告为前提;LS 现场检查要求建筑<b>先按 PBA 批准方案改造到位</b>。<b>压缩关键</b>:PBA 审核等待期内,让 DSL 并行备好 LS 材料 + AFE 预注册,并同步完成物业改造。<b>起跑发令枪</b>:尽快把可编辑 <span class="mono">.dwg</span> 平面图给 DSL。整体主线约 <b>4–8 个月</b>,规划建议留至 2027 Q1。</p>
+
+      <div class="g-detail">
+        <div class="ph">
+          <div class="ph-h"><span class="tag p0">阶段0</span>前置准备<span class="ph-dur">现在并行</span></div>
+          <p class="ph-goal">挂靠 CNPJ + 地址(均已具备),不依赖审批 —— 加速的关键。</p>
+          <ul>
+            <li><b>交付 .dwg 平面图</b><span class="can">立即</span><span>PBA 制图的原始输入,缺它整条线停摆。</span></li>
+            <li><b>物业物理改造</b>(WC PNE / DML / 废弃物间 / 通风)<span>满足卫生检查的硬件门槛,检查时场所须达标。</span></li>
+            <li><b>RT 技术负责人登记</b><span class="can">可前置</span><span>LS 申请与检查强制要求已登记 RT(化妆品需药师+CRF)。</span></li>
+            <li><b>ANVISA 账号预注册</b><span class="can">可前置</span><span>AFE 阶段要用,提前建主体到时直接递交。</span></li>
+          </ul>
+        </div>
+
+        <div class="ph">
+          <div class="ph-h"><span class="tag p1">①</span>PBA/LTA 建筑项目<span class="ph-dur">DSL~2周·审核30–90天</span></div>
+          <p class="ph-goal">让 VISA 批准"建筑布局符合卫生规范" —— LS 的前提。</p>
+          <ul>
+            <li><b>建筑图</b>(家具/剖面/立面/动线)<span>证明分区合理、物流动线不交叉污染。</span></li>
+            <li><b>实施图 + 说明书</b><span>场所在园区的定位;文字说明用途、用材、卫生措施。</span></li>
+            <li><b>ART 技术责任注册</b><span>资质工程师签字,对图纸承担法律责任。</span></li>
+            <li><b>递交 VISA 审核</b><span>官方批准建筑方案,批准后方可进入 LS。</span></li>
+          </ul>
+        </div>
+
+        <div class="ph">
+          <div class="ph-h"><span class="tag p2">②</span>LS 卫生许可<span class="ph-dur">DSL~4周·审核30–90天</span></div>
+          <p class="ph-goal">拿卫生许可 + 出具满意检查报告(AFE 前提)。需建筑先按批准方案改好。</p>
+          <ul>
+            <li><b>良好操作手册 + POP</b><span>规定全流程卫生标准,把每步操作写成可执行程序;检查逐条核对。</span></li>
+            <li><b>SGQ 质量体系培训</b><span>培训员工按手册/POP 执行,建立质量体系。</span></li>
+            <li><b>递交 LS + 陪同现场检查</b><span>VISA 实地核对"实物=批准图纸+卫生要求"。</span></li>
+            <li><b>复核检查报告</b><span>确认结论满意 —— 能否进入 AFE 的关键。</span></li>
+          </ul>
+        </div>
+
+        <div class="ph">
+          <div class="ph-h"><span class="tag p3">③</span>AFE 运营授权<span class="ph-dur">DSL~1周·审核30–60天</span></div>
+          <p class="ph-goal">取得联邦级(ANVISA)运营授权 —— 化妆品分销/进口的最终合法资质。</p>
+          <ul>
+            <li><b>规模认定 Enquadramento</b><span>按企业规模定 ANVISA 费率与分类。</span></li>
+            <li><b>递交 AFE + 跟进至公布</b><span>提交联邦授权申请,处理补正,跟进到批准。</span></li>
+            <li><b>公布于联邦公报 DOU</b><span>授权正式生效,此后方可运营监管类产品。</span></li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 
