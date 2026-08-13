@@ -188,6 +188,30 @@
   footer a{color:var(--accent); text-decoration:none}
   footer a:hover{text-decoration:underline}
 
+  /* ---------- gantt ---------- */
+  .gantt{padding:16px 18px 18px}
+  .gantt-scroll{overflow-x:auto}
+  .g-inner{min-width:560px}
+  .g-row{display:grid; grid-template-columns:112px repeat(9,minmax(42px,1fr)); align-items:center; min-height:36px}
+  .g-head{border-bottom:1px solid var(--line); min-height:30px; margin-bottom:6px}
+  .g-head .mo{grid-row:1; text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); font-variant-numeric:tabular-nums; border-left:1px solid var(--line); padding:3px 0}
+  .g-head .yr{font-size:9.5px; color:var(--ink-faint); letter-spacing:.05em}
+  .g-row .lbl{grid-row:1; grid-column:1; font-size:12.5px; font-weight:600; padding-right:10px; line-height:1.25}
+  .g-row .lbl small{display:block; font-weight:400; color:var(--ink-soft); font-size:10.5px; font-family:var(--font-mono)}
+  .bar{grid-row:1; height:22px; border-radius:6px; display:flex; align-items:center; padding:0 8px; font-size:10.5px; white-space:nowrap; overflow:hidden}
+  .bar.solid{background:var(--accent); color:#fff}
+  :root[data-theme="dark"] .bar.solid{color:#08201C}
+  .bar.prep{background:var(--locked); color:#fff}
+  :root[data-theme="dark"] .bar.prep{color:#10171A}
+  .bar.faded{background:repeating-linear-gradient(135deg,var(--pending-wash),var(--pending-wash) 5px,transparent 5px,transparent 10px); border:1px dashed var(--pending); color:var(--pending); font-weight:600}
+  .g-legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft)}
+  .g-legend span{display:inline-flex; align-items:center; gap:6px}
+  .g-legend i{width:15px; height:11px; border-radius:3px; display:inline-block}
+  .g-note{font-size:12.5px; color:var(--ink-soft); margin:12px 0 0; line-height:1.5}
+  .g-note b{color:var(--ink)}
+  .g-milestone{grid-row:1; align-self:center; justify-self:start; font-family:var(--font-mono); font-size:11px; font-weight:700}
+  .g-milestone.opt{color:var(--done)} .g-milestone.pes{color:var(--urgent)}
+
   @media(prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
 </style>
 
@@ -381,6 +405,67 @@
           <li class="step"><span class="node"></span><div class="name">获批 · 护照盖章</div><div class="dur">外交部下令 · 地点不可改</div></li>
         </ol>
       </div>
+    </div>
+  </section>
+
+  <!-- 合规排期 -->
+  <section>
+    <p class="eyebrow">合规排期 · ANVISA 三模块串行</p>
+    <div class="card gantt">
+      <div class="gantt-scroll">
+        <div class="g-inner">
+
+          <div class="g-row g-head">
+            <span class="lbl"></span>
+            <span class="mo" style="grid-column:2"><span class="yr">'26</span><br>8月</span>
+            <span class="mo" style="grid-column:3">9月</span>
+            <span class="mo" style="grid-column:4">10月</span>
+            <span class="mo" style="grid-column:5">11月</span>
+            <span class="mo" style="grid-column:6">12月</span>
+            <span class="mo" style="grid-column:7"><span class="yr">'27</span><br>1月</span>
+            <span class="mo" style="grid-column:8">2月</span>
+            <span class="mo" style="grid-column:9">3月</span>
+            <span class="mo" style="grid-column:10">4月</span>
+          </div>
+
+          <div class="g-row">
+            <span class="lbl">前置准备<small>.dwg+改造+备料</small></span>
+            <span class="bar prep" style="grid-column:2/4">物业改造 · DSL 备料</span>
+          </div>
+
+          <div class="g-row">
+            <span class="lbl">① PBA/LTA<small>建筑批准</small></span>
+            <span class="bar solid" style="grid-column:3/5">DSL备料+VISA审核</span>
+            <span class="bar faded" style="grid-column:5/6">保守</span>
+          </div>
+
+          <div class="g-row">
+            <span class="lbl">② LS<small>卫生许可+检查</small></span>
+            <span class="bar solid" style="grid-column:5/7">递交+现场检查</span>
+            <span class="bar faded" style="grid-column:7/9">保守</span>
+          </div>
+
+          <div class="g-row">
+            <span class="lbl">③ AFE<small>运营授权</small></span>
+            <span class="bar solid" style="grid-column:7/8">ANVISA</span>
+            <span class="bar faded" style="grid-column:8/11">保守</span>
+          </div>
+
+          <div class="g-row">
+            <span class="lbl" style="font-weight:400;color:var(--ink-soft);font-size:11.5px">运营就绪</span>
+            <span class="g-milestone opt" style="grid-column:7">▲ 乐观 ~1月</span>
+            <span class="g-milestone pes" style="grid-column:10">▲ 保守 ~4月</span>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="g-legend">
+        <span><i style="background:var(--locked)"></i>前置准备</span>
+        <span><i style="background:var(--accent)"></i>乐观周期(审核按 30 天)</span>
+        <span><i style="background:var(--pending-wash);border:1px dashed var(--pending)"></i>保守延伸(审核 60–90 天)</span>
+      </div>
+      <p class="g-note">三模块<b>串行依赖</b>:AFE 需 LS 现场检查出具满意报告为前提,LS 又需建筑按 PBA 批准方案改好。<b>压缩关键</b>:PBA 审核等待期内,让 DSL 并行备好 LS 材料 + AFE 的 ANVISA 预注册,并同步完成物业改造。<b>起跑发令枪</b>:尽快把可编辑 <span class="mono">.dwg</span> 平面图给 DSL。整体主线约 <b>4–8 个月</b>,规划建议留至 2027 Q1。</p>
     </div>
   </section>
 
