@@ -53,6 +53,24 @@ High-end gourmet still-life, WIDE medium shot with lots of clean negative space 
 - **物理连贯**:`chocolate drips down into a CONNECTED puddle that flows from the fruit`→ 桌上那滩有来源。
 - **3 石锁定**:`EXACTLY three diamonds … do NOT add extra stones`(拉宽后模型更稳,数量也更容易对)。
 
+### ✅ #003 · 海滩金光 · 模特佩戴耳环(生活方式 campaign mood)
+
+- **日期**:2026-08-10
+- **用途**:模特/生活方式 campaign **氛围片**(非精确 SKU;含 motion 词,亦适合视频生成)
+- **工具**:MJ / 视频生成(通用 mood prompt,不绑定具体产品)
+
+**Prompt(原文)**
+```
+A cinematic shot of a beautiful Hispanic woman with sun-kissed skin on a beach at golden hour, gently showcasing elegant white gold diamond earrings. Soft ocean breeze, natural movement, warm sunlight, close-up on the earrings sparkling. Romantic, feminine, luxury mood, shallow depth of field, cinematic lighting
+```
+
+**为什么成功(可复用骨架)** —— 按这个顺序套,换词即用:
+`[镜头 cinematic shot]` + `[人物+肤色+场景+时间 golden hour]` + `gently showcasing [产品]` + `[氛围 soft breeze / natural movement / warm sunlight]` + `close-up on [产品] sparkling` + `[情绪 romantic, feminine, luxury]` + `[技术 shallow DOF, cinematic lighting]`
+- **换款**:earrings → ring / necklace / bracelet;场景/人物/时间可换(城市夜景、窗边晨光、花园)。
+- **市场契合**:`Hispanic woman, sun-kissed skin` 贴巴西客群,比默认白人模特更对。
+- **motion 词**(soft breeze / natural movement)→ 拿去**视频生成**也顺。
+- ⚠️ **这是"氛围片",不还原你的具体 SKU**;要精确某枚耳钉 → 配 **Omni Reference(MJ)** 或 **Riverflow** 真图。
+
 ---
 
 ## 二、避坑（失败教训)
