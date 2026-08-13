@@ -23,6 +23,7 @@
 - [合规-ANVISA](docs/合规-ANVISA.md) — DSL 合规改造服务
 - [工签办理](docs/工签办理.md) — Visto Brasil 工作居留签证
 - [记账](docs/记账.md) — 开办费用明细
+- [时间线与待办](docs/时间线与待办.md) — 关键日期汇总 + 待办清单
 
 ## 资料来源
 
