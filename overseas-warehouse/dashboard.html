@@ -192,7 +192,7 @@
   .gantt{padding:16px 18px 18px}
   .gantt-scroll{overflow-x:auto}
   .g-inner{min-width:560px}
-  .g-row{display:grid; grid-template-columns:112px repeat(9,minmax(42px,1fr)); align-items:center; min-height:36px}
+  .g-row{display:grid; grid-template-columns:132px repeat(9,minmax(40px,1fr)); align-items:center; min-height:34px}
   .g-head{border-bottom:1px solid var(--line); min-height:30px; margin-bottom:6px}
   .g-head .mo{grid-row:1; text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); font-variant-numeric:tabular-nums; border-left:1px solid var(--line); padding:3px 0}
   .g-head .yr{font-size:9.5px; color:var(--ink-faint); letter-spacing:.05em}
@@ -211,6 +211,14 @@
   .g-note b{color:var(--ink)}
   .g-milestone{grid-row:1; align-self:center; justify-self:start; font-family:var(--font-mono); font-size:11px; font-weight:700}
   .g-milestone.opt{color:var(--done)} .g-milestone.pes{color:var(--urgent)}
+  .g-row.sub{min-height:30px}
+  .g-row.sub .lbl{font-size:11.5px; font-weight:500; padding-left:12px}
+  .g-row.sub .lbl small{font-family:var(--font-sans); font-weight:400}
+  .g-row.sub .bar{height:16px}
+  .g-sep{grid-column:1/11; grid-row:1; display:flex; align-items:center; gap:8px; margin:9px 0 2px; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:.06em; color:var(--accent)}
+  .g-sep::after{content:""; flex:1; height:1px; background:var(--line)}
+  .g-sep.p0{color:var(--locked)}
+  .g-milestone-row{margin-top:6px}
 
   /* task detail */
   .g-detail{margin-top:18px; display:grid; grid-template-columns:repeat(2,1fr); gap:16px}
@@ -444,31 +452,32 @@
             <span class="mo" style="grid-column:10">4月</span>
           </div>
 
-          <div class="g-row">
-            <span class="lbl">前置准备<small>.dwg+改造+备料</small></span>
-            <span class="bar prep" style="grid-column:2/4">物业改造 · DSL 备料</span>
-          </div>
+          <!-- 阶段0 -->
+          <div class="g-row"><span class="g-sep p0">阶段0 · 前置准备(现在并行)</span></div>
+          <div class="g-row sub"><span class="lbl">交付 .dwg 平面图</span><span class="bar prep" style="grid-column:2/3"></span></div>
+          <div class="g-row sub"><span class="lbl">物业物理改造</span><span class="bar prep" style="grid-column:2/5"></span></div>
+          <div class="g-row sub"><span class="lbl">RT 技术负责人登记</span><span class="bar prep" style="grid-column:2/4"></span></div>
+          <div class="g-row sub"><span class="lbl">ANVISA 账号预注册</span><span class="bar prep" style="grid-column:2/3"></span></div>
 
-          <div class="g-row">
-            <span class="lbl">① PBA/LTA<small>建筑批准</small></span>
-            <span class="bar solid" style="grid-column:3/5">DSL备料+VISA审核</span>
-            <span class="bar faded" style="grid-column:5/6">保守</span>
-          </div>
+          <!-- ① PBA -->
+          <div class="g-row"><span class="g-sep p1">① PBA/LTA · 建筑批准</span></div>
+          <div class="g-row sub"><span class="lbl">DSL 制图 + ART</span><span class="bar solid" style="grid-column:2/4"></span></div>
+          <div class="g-row sub"><span class="lbl">递交 + VISA 审核</span><span class="bar solid" style="grid-column:3/5"></span><span class="bar faded" style="grid-column:5/6"></span></div>
 
-          <div class="g-row">
-            <span class="lbl">② LS<small>卫生许可+检查</small></span>
-            <span class="bar solid" style="grid-column:5/7">递交+现场检查</span>
-            <span class="bar faded" style="grid-column:7/9">保守</span>
-          </div>
+          <!-- ② LS -->
+          <div class="g-row"><span class="g-sep p2">② LS · 卫生许可 + 现场检查</span></div>
+          <div class="g-row sub"><span class="lbl">DSL 备料<small>(手册/POP/培训)</small></span><span class="bar solid" style="grid-column:3/5"></span></div>
+          <div class="g-row sub"><span class="lbl">递交 LS + 现场检查 + 审核</span><span class="bar solid" style="grid-column:4/6"></span><span class="bar faded" style="grid-column:6/8"></span></div>
+          <div class="g-row sub"><span class="lbl">复核检查报告</span><span class="bar solid" style="grid-column:5/6"></span></div>
 
-          <div class="g-row">
-            <span class="lbl">③ AFE<small>运营授权</small></span>
-            <span class="bar solid" style="grid-column:7/8">ANVISA</span>
-            <span class="bar faded" style="grid-column:8/11">保守</span>
-          </div>
+          <!-- ③ AFE -->
+          <div class="g-row"><span class="g-sep p3">③ AFE · 运营授权</span></div>
+          <div class="g-row sub"><span class="lbl">规模认定 + 递交 AFE</span><span class="bar solid" style="grid-column:6/7"></span></div>
+          <div class="g-row sub"><span class="lbl">ANVISA 审核 + 公报公布</span><span class="bar solid" style="grid-column:6/8"></span><span class="bar faded" style="grid-column:8/11"></span></div>
 
-          <div class="g-row">
-            <span class="lbl" style="font-weight:400;color:var(--ink-soft);font-size:11.5px">运营就绪</span>
+          <!-- 里程碑 -->
+          <div class="g-row g-milestone-row">
+            <span class="lbl" style="font-weight:600;color:var(--ink);font-size:11.5px">🏁 运营就绪</span>
             <span class="g-milestone opt" style="grid-column:7">▲ 乐观 ~1月</span>
             <span class="g-milestone pes" style="grid-column:10">▲ 保守 ~4月</span>
           </div>
