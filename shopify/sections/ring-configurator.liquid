@@ -1,0 +1,304 @@
+{%- comment -%}
+  1999 · Ring Configurator section
+  ---------------------------------------------------------------
+  Configurador de anel: FORMATO (ícones) + QUILATES (slider) + METAL (swatches).
+  Mapeia diretamente às 3 opções de variante do produto no Shopify.
+
+  SETUP (uma vez, no admin do produto):
+    1. Crie o produto com EXATAMENTE estas 3 opções (nomes livres, detectados por palavra-chave):
+         Opção 1  →  "Formato"  (ou "Shape")      valores: Redondo, Oval, Esmeralda, Almofada, Radiante, Gota, Marquise, Princesa, Asscher...
+         Opção 2  →  "Quilates" (ou "Carat")      valores: 0,5 · 0,75 · 1 · 1,5 · 2   (na ordem crescente)
+         Opção 3  →  "Metal"    (ou "Material")   valores: Ouro Branco, Ouro Amarelo, Ouro Rosé, Platina, Prata...
+    2. Preencha PREÇO por variante e, se quiser, uma IMAGEM por variante (o metal troca a foto).
+    3. Adicione esta section ao template do produto (Online Store → Themes → Customize → template "Produto" → Add section)
+       ou inclua {% render 'ring-configurator' %} não — é section, use no template product.<nome>.json.
+  As outras opções da referência (Style, Natural/Lab Grown) foram propositalmente omitidas.
+{%- endcomment -%}
+
+{%- assign v0 = product.selected_or_first_available_variant -%}
+
+<section class="rc" data-rc
+  data-accent="{{ section.settings.accent | default: '#1f4a45' }}"
+  style="--rc-accent:{{ section.settings.accent | default: '#1f4a45' }};--rc-gold:{{ section.settings.gold | default: '#b8a88a' }};">
+
+  <div class="rc__grid">
+    {%- comment -%} ---------- MEDIA ---------- {%- endcomment -%}
+    <div class="rc__media">
+      <div class="rc__main">
+        <img data-rc-main
+             src="{% if v0.featured_image %}{{ v0.featured_image | image_url: width: 1200 }}{% elsif product.featured_image %}{{ product.featured_image | image_url: width: 1200 }}{% endif %}"
+             alt="{{ product.title | escape }}" width="1200" height="1200" loading="eager">
+        {%- if section.settings.shown_note != blank -%}<span class="rc__shown" data-rc-note>{{ section.settings.shown_note }}</span>{%- endif -%}
+      </div>
+      {%- if product.images.size > 1 -%}
+        <div class="rc__thumbs">
+          {%- for image in product.images limit: 5 -%}
+            <button type="button" class="rc__thumb{% if forloop.first %} is-sel{% endif %}" data-rc-thumb>
+              <img src="{{ image | image_url: width: 300 }}" alt="" width="300" height="300" loading="lazy">
+            </button>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} ---------- PANEL ---------- {%- endcomment -%}
+    <div class="rc__panel">
+      <h1 class="rc__title">{{ product.title }}</h1>
+      <div class="rc__priceline">
+        <span class="rc__price" data-rc-price>{{ v0.price | money }}</span>
+        {%- if section.settings.price_suffix != blank -%}<span class="rc__suffix">{{ section.settings.price_suffix }}</span>{%- endif -%}
+      </div>
+
+      {%- for option in product.options_with_values -%}
+        {%- assign oname = option.name | downcase -%}
+        {%- assign pos = option.position -%}
+
+        {%- if oname contains 'formato' or oname contains 'shape' or oname contains 'forma' -%}
+          {%- comment -%} ---- SHAPE ---- {%- endcomment -%}
+          <div class="rc__group" data-rc-group="{{ pos }}" data-rc-kind="shape">
+            <div class="rc__glabel">Formato do diamante: <b data-rc-cur>{{ option.selected_value }}</b></div>
+            <div class="rc__shapes">
+              {%- for val in option.values -%}
+                <button type="button" class="rc__shape{% if val == option.selected_value %} is-sel{% endif %}"
+                        data-rc-opt="{{ pos }}" data-rc-val="{{ val | escape }}" aria-label="{{ val | escape }}" title="{{ val | escape }}"></button>
+              {%- endfor -%}
+            </div>
+          </div>
+
+        {%- elsif oname contains 'quilate' or oname contains 'carat' or oname contains 'ct' -%}
+          {%- comment -%} ---- CARAT (slider) ---- {%- endcomment -%}
+          <div class="rc__group" data-rc-group="{{ pos }}" data-rc-kind="carat">
+            <div class="rc__glabel">Quilates: <b data-rc-cur>{{ option.selected_value }}</b></div>
+            <div class="rc__slider">
+              <span class="rc__send rc__send--min">{{ option.values.first }}</span>
+              <input type="range" min="0" max="{{ option.values.size | minus: 1 }}" step="1" value="0"
+                     data-rc-opt="{{ pos }}" data-rc-carat aria-label="Quilates"
+                     data-vals="{{ option.values | join: '|' | escape }}">
+              <span class="rc__send rc__send--max">{{ option.values.last }}</span>
+            </div>
+          </div>
+
+        {%- elsif oname contains 'metal' or oname contains 'material' -%}
+          {%- comment -%} ---- METAL (swatches) ---- {%- endcomment -%}
+          <div class="rc__group" data-rc-group="{{ pos }}" data-rc-kind="metal">
+            <div class="rc__glabel">Metal: <b data-rc-cur>{{ option.selected_value }}</b></div>
+            <div class="rc__metals">
+              {%- for val in option.values -%}
+                <button type="button" class="rc__metal{% if val == option.selected_value %} is-sel{% endif %}"
+                        data-rc-opt="{{ pos }}" data-rc-val="{{ val | escape }}" aria-label="{{ val | escape }}" title="{{ val | escape }}"></button>
+              {%- endfor -%}
+            </div>
+          </div>
+
+        {%- else -%}
+          {%- comment -%} ---- fallback: botões simples ---- {%- endcomment -%}
+          <div class="rc__group" data-rc-group="{{ pos }}" data-rc-kind="plain">
+            <div class="rc__glabel">{{ option.name }}: <b data-rc-cur>{{ option.selected_value }}</b></div>
+            <div class="rc__plain">
+              {%- for val in option.values -%}
+                <button type="button" class="rc__pbtn{% if val == option.selected_value %} is-sel{% endif %}"
+                        data-rc-opt="{{ pos }}" data-rc-val="{{ val | escape }}">{{ val }}</button>
+              {%- endfor -%}
+            </div>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+
+      <form method="post" action="{{ routes.cart_add_url }}" data-rc-form class="rc__form">
+        <input type="hidden" name="id" value="{{ v0.id }}" data-rc-id>
+        <button type="submit" class="rc__cta" data-rc-submit>{{ section.settings.cta_text | default: 'Escolher este modelo' }}</button>
+        <p class="rc__soldout" data-rc-soldout hidden>Combinação indisponível</p>
+      </form>
+    </div>
+  </div>
+
+  {%- comment -%} data para o JS {%- endcomment -%}
+  <script type="application/json" data-rc-variants>
+    [{%- for v in product.variants -%}
+      {"id":{{ v.id }},"opts":{{ v.options | json }},"available":{{ v.available }},"price":{{ v.price }},"img":{% if v.featured_image %}{{ v.featured_image | image_url: width: 1200 | json }}{% else %}null{% endif %}}{%- unless forloop.last -%},{%- endunless -%}
+    {%- endfor -%}]
+  </script>
+  <script type="application/json" data-rc-prices>
+    { {%- for v in product.variants -%}"{{ v.id }}":{{ v.price | money | json }}{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%} }
+  </script>
+</section>
+
+{%- comment -%} ---------- SVG sprite (formas) ---------- {%- endcomment -%}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="rcs-round" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><circle cx="24" cy="24" r="16"/><polygon points="24,12 34,18 34,30 24,36 14,30 14,18"/><path d="M24 8v4M38 16l-4 2M38 32l-4-2M24 40v-4M10 32l4-2M10 16l4 2"/></g></symbol>
+  <symbol id="rcs-oval" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><ellipse cx="24" cy="24" rx="11" ry="17"/><ellipse cx="24" cy="24" rx="6" ry="10"/><path d="M24 5v6M24 37v6M11 24h4M33 24h4"/></g></symbol>
+  <symbol id="rcs-emerald" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="15" y="8" width="18" height="32" rx="2.5"/><rect x="19" y="13" width="10" height="22" rx="1.5"/><path d="M15 13l4 0M33 13l-4 0M15 35l4 0M33 35l-4 0"/></g></symbol>
+  <symbol id="rcs-cushion" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M14 14C14 10 18 10 24 10s10 0 10 4 0 6 0 10-0 10-10 10-10 0-10-10 0-6 0-10Z"/><circle cx="24" cy="24" r="8"/><path d="M16 16l5 5M32 16l-5 5M16 32l5-5M32 32l-5-5"/></g></symbol>
+  <symbol id="rcs-radiant" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M18 9h12l6 6v18l-6 6H18l-6-6V15Z"/><rect x="19" y="15" width="10" height="18"/><path d="M12 15l7 0M36 15l-7 0M12 33l7 0M36 33l-7 0"/></g></symbol>
+  <symbol id="rcs-pear" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M24 7C32 17 35 24 35 30a11 11 0 0 1-22 0C13 24 16 17 24 7Z"/><path d="M24 16c5 7 6 11 6 14a6 6 0 0 1-12 0c0-3 1-7 6-14Z"/></g></symbol>
+  <symbol id="rcs-marquise" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M24 6C32 16 32 32 24 42 16 32 16 16 24 6Z"/><path d="M24 12c5 8 5 16 0 24-5-8-5-16 0-24Z"/><path d="M24 6v36M16 24h16"/></g></symbol>
+  <symbol id="rcs-princess" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="11" y="11" width="26" height="26"/><rect x="17" y="17" width="14" height="14"/><path d="M11 11l6 6M37 11l-6 6M11 37l6-6M37 37l-6-6"/></g></symbol>
+  <symbol id="rcs-asscher" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M17 9h14l7 7v14l-7 7H17l-7-7V16Z"/><path d="M21 15h6l6 6v6l-6 6h-6l-6-6v-6Z"/><path d="M10 16l7 -1M38 16l-7 -1M10 32l7 1M38 32l-7 1"/></g></symbol>
+  <symbol id="rcs-heart" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M24 40C10 29 11 16 19 13c4-1.5 5 .5 5 4 0-3.5 1-5.5 5-4 8 3 9 16-5 27Z"/></g></symbol>
+</defs></svg>
+
+<style>
+  .rc{--rc-line:#e6e1d6;--rc-ink:#242019;--rc-mut:#7a7263;--rc-bg:#faf8f4;
+      color:var(--rc-ink);font-family:inherit;padding:28px 0}
+  .rc *{box-sizing:border-box}
+  .rc__grid{display:grid;grid-template-columns:1.15fr .85fr;gap:48px;max-width:1200px;margin:0 auto;padding:0 20px;align-items:start}
+  .rc__main{position:relative;aspect-ratio:1;background:var(--rc-bg);border-radius:6px;overflow:hidden}
+  .rc__main img{width:100%;height:100%;object-fit:cover;transition:opacity .3s}
+  .rc__shown{position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:.72rem;letter-spacing:.06em;color:var(--rc-mut)}
+  .rc__thumbs{display:flex;gap:10px;margin-top:12px}
+  .rc__thumb{flex:1;aspect-ratio:1;border:1px solid var(--rc-line);border-radius:5px;overflow:hidden;background:var(--rc-bg);cursor:pointer;padding:0}
+  .rc__thumb.is-sel{border-color:var(--rc-accent)}
+  .rc__thumb img{width:100%;height:100%;object-fit:cover}
+
+  .rc__title{font-size:1.8rem;line-height:1.25;font-weight:500;margin:0 0 12px}
+  .rc__priceline{display:flex;align-items:baseline;gap:10px;margin-bottom:26px}
+  .rc__price{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
+  .rc__suffix{font-size:.85rem;color:var(--rc-mut)}
+
+  .rc__group{padding:20px 0;border-top:1px solid var(--rc-line)}
+  .rc__glabel{font-size:.85rem;letter-spacing:.02em;color:var(--rc-mut);margin-bottom:14px}
+  .rc__glabel b{color:var(--rc-ink);font-weight:600}
+
+  .rc__shapes{display:flex;flex-wrap:wrap;gap:8px}
+  .rc__shape{width:52px;height:52px;border:1px solid var(--rc-line);border-radius:6px;background:#fff;
+    color:var(--rc-ink);cursor:pointer;display:grid;place-items:center;transition:.2s;padding:0}
+  .rc__shape svg{width:30px;height:30px}
+  .rc__shape:hover{border-color:var(--rc-gold)}
+  .rc__shape.is-sel{border-color:var(--rc-accent);box-shadow:inset 0 0 0 1px var(--rc-accent)}
+
+  .rc__slider{display:flex;align-items:center;gap:14px}
+  .rc__send{font-size:.75rem;color:var(--rc-mut);white-space:nowrap}
+  .rc__slider input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:3px;border-radius:3px;
+    background:var(--rc-line);outline:none}
+  .rc__slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+    background:var(--rc-accent);border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.25);cursor:pointer}
+  .rc__slider input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--rc-accent);border:3px solid #fff;cursor:pointer}
+
+  .rc__metals{display:flex;flex-wrap:wrap;gap:12px}
+  .rc__metal{width:38px;height:38px;border-radius:50%;border:1px solid rgba(0,0,0,.12);cursor:pointer;
+    position:relative;transition:.2s;padding:0}
+  .rc__metal.is-sel{box-shadow:0 0 0 2px #fff,0 0 0 3px var(--rc-accent)}
+
+  .rc__plain{display:flex;flex-wrap:wrap;gap:8px}
+  .rc__pbtn{padding:9px 16px;border:1px solid var(--rc-line);border-radius:4px;background:#fff;cursor:pointer;font:inherit;font-size:.85rem}
+  .rc__pbtn.is-sel{border-color:var(--rc-accent);color:var(--rc-accent)}
+
+  .rc__form{margin-top:26px}
+  .rc__cta{width:100%;padding:17px;border:none;border-radius:4px;background:var(--rc-accent);color:#fff;
+    font:inherit;font-size:.85rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:.25s}
+  .rc__cta:hover{filter:brightness(1.12)}
+  .rc__cta:disabled{opacity:.45;cursor:not-allowed}
+  .rc__soldout{color:#a3402f;font-size:.8rem;margin:10px 0 0;text-align:center}
+
+  @media (max-width:820px){.rc__grid{grid-template-columns:1fr;gap:26px}}
+</style>
+
+<script>
+(function(){
+  document.querySelectorAll('[data-rc]').forEach(function(root){
+    var variants, prices;
+    try{ variants=JSON.parse(root.querySelector('[data-rc-variants]').textContent);
+         prices=JSON.parse(root.querySelector('[data-rc-prices]').textContent); }catch(e){ return; }
+    if(!variants.length) return;
+
+    // formas: mapeia valor -> símbolo svg
+    function shapeSym(v){ v=(v||'').toLowerCase();
+      if(/round|redond/.test(v))return'round'; if(/oval/.test(v))return'oval';
+      if(/emerald|esmeral/.test(v))return'emerald'; if(/cushion|almofad/.test(v))return'cushion';
+      if(/radiant|radiante/.test(v))return'radiant'; if(/pear|gota/.test(v))return'pear';
+      if(/marquise/.test(v))return'marquise'; if(/princess|princesa/.test(v))return'princess';
+      if(/asscher/.test(v))return'asscher'; if(/heart|cora/.test(v))return'heart'; return'round'; }
+    root.querySelectorAll('.rc__shape').forEach(function(b){
+      b.innerHTML='<svg><use href="#rcs-'+shapeSym(b.dataset.rcVal)+'"></use></svg>';
+    });
+    // metais: valor -> cor
+    function metalCss(v){ v=(v||'').toLowerCase();
+      if(/ros[eé]|rose/.test(v))return'linear-gradient(135deg,#e8c0ad,#c98e77)';
+      if(/amarelo|yellow/.test(v))return'linear-gradient(135deg,#f3dda0,#c9a84f)';
+      if(/platin|platina/.test(v))return'linear-gradient(135deg,#eef0f2,#b8bcc0)';
+      if(/prata|silver/.test(v))return'linear-gradient(135deg,#eef0f2,#c2c6ca)';
+      return'linear-gradient(135deg,#f4f4f2,#d9d9d6)'; /* branco/default */ }
+    root.querySelectorAll('.rc__metal').forEach(function(b){ b.style.background=metalCss(b.dataset.rcVal); });
+
+    // estado das opções selecionadas (por posição 1..n)
+    var nOpts=variants[0].opts.length;
+    var sel={};
+    root.querySelectorAll('.rc__group').forEach(function(g){
+      var pos=+g.dataset.rcGroup;
+      var chosen=g.querySelector('.is-sel');
+      if(g.dataset.rcKind==='carat'){
+        var input=g.querySelector('[data-rc-carat]'); var vals=input.dataset.vals.split('|');
+        // posição inicial = valor atual selecionado (primeiro disponível)
+        var start=vals.indexOf(g.querySelector('[data-rc-cur]').textContent.trim());
+        if(start<0)start=0; input.value=start; sel[pos]=vals[start];
+      }else{
+        sel[pos]=chosen?chosen.dataset.rcVal:(variants[0].opts[pos-1]);
+      }
+    });
+
+    var mainImg=root.querySelector('[data-rc-main]');
+    var priceEl=root.querySelector('[data-rc-price]');
+    var idInput=root.querySelector('[data-rc-id]');
+    var cta=root.querySelector('[data-rc-submit]');
+    var soldout=root.querySelector('[data-rc-soldout]');
+    var note=root.querySelector('[data-rc-note]');
+
+    function findVariant(){
+      return variants.find(function(v){
+        for(var i=0;i<nOpts;i++){ if(sel[i+1]!==undefined && v.opts[i]!==sel[i+1]) return false; }
+        return true;
+      });
+    }
+    function render(){
+      var v=findVariant();
+      if(v){
+        priceEl.textContent=prices[v.id]||priceEl.textContent;
+        idInput.value=v.id;
+        cta.disabled=!v.available;
+        if(soldout)soldout.hidden=v.available;
+        if(v.img && mainImg){ mainImg.src=v.img; }
+        if(note)note.style.display='none';
+      }else{
+        cta.disabled=true; if(soldout)soldout.hidden=false;
+      }
+    }
+
+    // interações: formas / metais / plain
+    root.querySelectorAll('.rc__shape,.rc__metal,.rc__pbtn').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        var pos=+btn.dataset.rcOpt;
+        btn.parentElement.querySelectorAll('button').forEach(function(x){x.classList.remove('is-sel');});
+        btn.classList.add('is-sel');
+        sel[pos]=btn.dataset.rcVal;
+        var lab=btn.closest('.rc__group').querySelector('[data-rc-cur]'); if(lab)lab.textContent=btn.dataset.rcVal;
+        render();
+      });
+    });
+    // slider quilates
+    root.querySelectorAll('[data-rc-carat]').forEach(function(input){
+      var pos=+input.dataset.rcOpt, vals=input.dataset.vals.split('|');
+      input.addEventListener('input',function(){
+        var val=vals[+input.value]; sel[pos]=val;
+        var lab=input.closest('.rc__group').querySelector('[data-rc-cur]'); if(lab)lab.textContent=val;
+        render();
+      });
+    });
+
+    render();
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Configurador de anel",
+  "settings": [
+    { "type": "text", "id": "cta_text", "label": "Texto do botão", "default": "Escolher este modelo" },
+    { "type": "text", "id": "price_suffix", "label": "Sufixo do preço", "default": "(somente o modelo)" },
+    { "type": "text", "id": "shown_note", "label": "Legenda da imagem", "default": "Exibido com diamante de 2 ct" },
+    { "type": "color", "id": "accent", "label": "Cor de destaque", "default": "#1f4a45" },
+    { "type": "color", "id": "gold", "label": "Cor dourada (hover)", "default": "#b8a88a" }
+  ],
+  "presets": [{ "name": "Configurador de anel" }]
+}
+{% endschema %}
