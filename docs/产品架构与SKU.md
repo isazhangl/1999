@@ -43,12 +43,18 @@
 
 | 款式码 | 名称(PT / 中) | 说明 | 状态 |
 |---|---|---|---|
-| `SOL` | Solitário / 单石 | 单主石(四爪/六爪) | ✅ |
+| `SOL` | Solitário Puro / 至纯单石 | 细圈平臂 · 四爪 · 最经典 | ✅ |
+| `ENL` | Enlace / 缠绕 | 戒臂不对称环绕主石(bypass/扭臂) | ✅ |
+| `BZL` | Aura / 包边光环 | 全金属包边镶(bezel)· 平臂 | ✅ |
+| `CAT` | Catedral / 教堂拱肩 | 戒臂上扬拱肩(cathedral)· 四爪 | ✅ |
+| `INF` | Infinito / 无限交织 | 戒臂分叉交叉于底(crossover/split) | ✅ |
 | `TRS` | Três Pedras / 三石 | 主石 + 两侧石 | ✅ |
 | `HAL` | Halo / 光环 | 主石周围一圈碎钻光环 | ✅ |
 | `HHL` | Hidden Halo / 隐藏光环 | 侧面才可见的隐藏光环 | ✅ |
 | `PAV` | Pavé / 戒臂镶钻 | 戒臂排镶碎钻 | ✅ |
 | … | (待命名) | 发图后补 | ⏳ |
+
+> `SOL`/`ENL`/`BZL`/`CAT`/`INF` 同属**单石家族**,区别在戒臂/镶法;形状与金属为独立 SKU 维度。
 
 ---
 
