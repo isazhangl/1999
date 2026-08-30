@@ -54,8 +54,11 @@
 | `TRB` | Trilogia Baguete / 三石·锥形长方侧石 | 侧石锥形长方(tapered baguette) | ✅ |
 | `TRR` | Trilogia Redonda / 三石·圆形侧石 | 侧石圆形(round) | ✅ |
 | `HAL` | Halo / 光环 | 主石周围一圈碎钻光环 | ✅ |
-| `HHL` | Hidden Halo / 隐藏光环 | 侧面才可见的隐藏光环 | ✅ |
-| `PAV` | Pavé / 戒臂镶钻 | 戒臂排镶碎钻 | ✅ |
+| `HAF` | Halo Flor / 花形光环 | 花瓣/扇贝形复古光环 | ✅ |
+| `HHL` | Hidden Halo / 隐藏光环 | 侧面才可见的隐藏光环 · 平臂 | ✅ |
+| `HHP` | Halo Oculto Pavé / 隐藏光环+碎钻臂 | 隐藏光环 + 戒臂 pavé | ✅ |
+| `PAV` | Pavé / 戒臂镶钻 | 戒臂排镶碎钻(无光环) | ✅ |
+| `VIN` | Vinha / 缠枝碎钻 | 戒臂扭转如藤蔓 + pavé | ✅ |
 | … | (待命名) | 发图后补 | ⏳ |
 
 > `SOL`/`ENL`/`BZL`/`CAT`/`INF` 同属**单石家族**,区别在戒臂/镶法;形状与金属为独立 SKU 维度。
