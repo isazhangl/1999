@@ -48,7 +48,11 @@
 | `BZL` | Aura / 包边光环 | 全金属包边镶(bezel)· 平臂 | ✅ |
 | `CAT` | Catedral / 教堂拱肩 | 戒臂上扬拱肩(cathedral)· 四爪 | ✅ |
 | `INF` | Infinito / 无限交织 | 戒臂分叉交叉于底(crossover/split) | ✅ |
-| `TRS` | Três Pedras / 三石 | 主石 + 两侧石 | ✅ |
+| `TRS` | Trilogia / 三石(总称) | 主石 + 两侧石(下列按侧石形状细分) | ✅ |
+| `TRG` | Trilogia Gota / 三石·梨形侧石 | 侧石梨形(pear) | ✅ |
+| `TRE` | Trilogia Esmeralda / 三石·祖母绿侧石 | 侧石祖母绿/长方阶梯 | ✅ |
+| `TRB` | Trilogia Baguete / 三石·锥形长方侧石 | 侧石锥形长方(tapered baguette) | ✅ |
+| `TRR` | Trilogia Redonda / 三石·圆形侧石 | 侧石圆形(round) | ✅ |
 | `HAL` | Halo / 光环 | 主石周围一圈碎钻光环 | ✅ |
 | `HHL` | Hidden Halo / 隐藏光环 | 侧面才可见的隐藏光环 | ✅ |
 | `PAV` | Pavé / 戒臂镶钻 | 戒臂排镶碎钻 | ✅ |
