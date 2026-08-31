@@ -82,7 +82,35 @@
 
 ---
 
+---
+
+## 五、FOREVER MINE · 成品样板（已在 Shopify 建档,DRAFT）
+
+> 逐款独立 SKU,少量可选(金属/尺寸)。以下为首批样板,后续按真实成品清单扩充。
+
+| SKU | 品类 | 名称(PT) | 可选项 | 价 R$ |
+|---|---|---|---|---|
+| `FM-CO-001` | 项链 | Colar Ponto de Luz | — | 2.490 |
+| `FM-BR-001` | 耳饰 | Brincos Argola Cravejados | 金属(白/黄/玫瑰) | 1.290 |
+| `FM-PU-001` | 手链 | Pulseira Tennis Clássica | — | 3.990 |
+| `FM-AN-001` | 戒指 | Aliança Meia-Eternidade | 尺寸(14/16/18/20/22) | 2.490 |
+
+---
+
+## 六、Shopify 登记状态
+
+- **定价公式**:见 [`定价公式-O-SIM-PERFEITO.md`](./定价公式-O-SIM-PERFEITO.md)(创始人可微调三张参数表 → 重跑 `scripts/gen_osp_variants.py` → 批量改价)。
+- **系列 = Coleção(智能集合,按 TAG 归类)**:
+  - `Coleção 1999`(tag `colecao-1999`)· `O Sim Perfeito`(tag `o-sim-perfeito`)· `Forever Mine`(tag `forever-mine`)。
+- **O SIM PERFEITO**:19 个镶嵌款式 = 19 个商品,每个 **形状10 × 克拉7 × 金属5 = 350 变体**,合计 **6.650 变体**,状态 DRAFT,按公式定价。图片后续生成再上传。
+- **1999 入门线**:4 个固定商品(耳钉/吊坠/戒指/手链),全 **R$1.999**。
+- 详见 [`Shopify登记状态.md`](./Shopify登记状态.md)。
+
+---
+
 ## 待补 / 待办
 - [ ] **钻戒款式**:创始人陆续发图 → 命名 + 配码,补进 §三。
-- [ ] **FOREVER MINE**:逐款成品清单(品类/款号/可选项)。
+- [ ] **FOREVER MINE**:按真实成品清单继续扩充逐款 SKU(品类/款号/可选项/价格)。
 - [ ] 视觉图更正:1999 耳钉图注 0.5ct → **0.3ct**(见 `docs/images/1999-series/`)。
+- [ ] **图片**:各 SKU 电商效果图生成后,回传 Shopify(需公网 HTTPS 图址)。
+- [ ] 旧演示商品清理:Shopify 上有 9 个早期 demo 戒指(智能集合 `o sim perfeito`,按 TYPE=Anel de Noivado),待创始人确认是否删除/归档。
