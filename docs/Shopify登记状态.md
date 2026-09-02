@@ -13,7 +13,7 @@
 | **O Sim Perfeito** | `o-sim-perfeito-1` | tag = `o-sim-perfeito` |
 | **Forever Mine** | `forever-mine` | tag = `forever-mine` |
 
-> 旧演示集合 `o sim perfeito`(按 TYPE=Anel de Noivado,含 9 个早期 demo 戒指)保留待创始人确认清理。
+> 旧的一整套演示产品/集合(vendor `Isa` 的 30 个商品 + 13 个旧集合)已清理删除,店铺只剩以上 3 个系列集合。
 
 ---
 
@@ -28,22 +28,35 @@
 
 ---
 
-## 三、O SIM PERFEITO(配置线钻戒)
+## 三、O SIM PERFEITO(配置线钻戒)· ✅ 全部建档完成
 
 - 结构:**1 镶嵌款式 = 1 商品**,选项 = **Formato(10)× Quilates(7)× Metal(5)= 350 变体/款**。
-- 19 款式 → **6.650 变体**,按 [`定价公式-O-SIM-PERFEITO.md`](./定价公式-O-SIM-PERFEITO.md) 定价。
+- **19 款 × 350 = 6.650 变体全部创建完成**(DRAFT,tag `o-sim-perfeito`)。
 - SKU:`SP-AN-[款式]-[形状]-[克拉]-[金属]`。
 
-| 款式码 | 名称 | Shopify 商品 | 变体 | 状态 |
+| # | 款式码 | 商品名 | 变体 | 价格 |
 |---|---|---|---|---|
-| SOL | Solitário Puro | ✅ 建档 | 350 | 已建 |
-| ENL / BZL / CAT / INF | Enlace / Aura / Catedral / Infinito | 建档中 | 350×4 | 进行中 |
-| TRG / TRE / TRB / TRR | Trilogia (Gota/Esmeralda/Baguete/Redonda) | 待建 | 350×4 | 排队 |
-| HAL / HAF / HAP / HAV | Halo 家族 | 待建 | 350×4 | 排队 |
-| HHL / HHP / HHC | Halo Oculto 家族 | 待建 | 350×3 | 排队 |
-| PAV / VIN / CRO | Pavé / Vinha / Coroa | 待建 | 350×3 | 排队 |
+| 1 | SOL | Anel Solitário Puro | 350 ✅ | **成本法(已定价)** |
+| 2 | ENL | Anel Enlace | 350 ✅ | 占位待定 |
+| 3 | BZL | Anel Aura | 350 ✅ | 占位待定 |
+| 4 | CAT | Anel Catedral | 350 ✅ | 占位待定 |
+| 5 | INF | Anel Infinito | 350 ✅ | 占位待定 |
+| 6 | TRG | Anel Trilogia Gota | 350 ✅ | 占位待定 |
+| 7 | TRE | Anel Trilogia Esmeralda | 350 ✅ | 占位待定 |
+| 8 | TRB | Anel Trilogia Baguete | 350 ✅ | 占位待定 |
+| 9 | TRR | Anel Trilogia Redonda | 350 ✅ | 占位待定 |
+| 10 | HAL | Anel Halo | 350 ✅ | 占位待定 |
+| 11 | HAF | Anel Halo Flor | 350 ✅ | 占位待定 |
+| 12 | HAP | Anel Halo Pavé | 350 ✅ | 占位待定 |
+| 13 | HAV | Anel Halo Vinha | 350 ✅ | 占位待定 |
+| 14 | HHL | Anel Hidden Halo | 350 ✅ | 占位待定 |
+| 15 | HHP | Anel Halo Oculto Pavé | 350 ✅ | 占位待定 |
+| 16 | HHC | Anel Halo Oculto Catedral | 350 ✅ | 占位待定 |
+| 17 | PAV | Anel Pavé | 350 ✅ | 占位待定 |
+| 18 | VIN | Anel Vinha | 350 ✅ | 占位待定 |
+| 19 | CRO | Anel Coroa | 350 ✅ | 占位待定 |
 
-> 建档进度随后台批处理更新;完成后本表标注全部 ✅。
+> **定价**:SOL(单石)已按 [`定价公式-O-SIM-PERFEITO.md`](./定价公式-O-SIM-PERFEITO.md)(成本 ×6)批量定价并核对通过。其余 18 款用占位价,**等创始人逐款给价** → 再批量改价。
 
 ---
 
@@ -56,12 +69,13 @@
 | `FM-PU-001` | Pulseira Tennis Clássica | — | 3.990 |
 | `FM-AN-001` | Aliança Meia-Eternidade | 尺寸 14–22 | 2.490 |
 
-> 首批样板;后续按真实成品清单扩充。
-
 ---
 
+## 汇总
+- **商品总数**:19(O Sim Perfeito)+ 4(1999)+ 4(Forever Mine)= **27 个商品**。
+- **变体总数**:6.650 + 4 + (1+3+1+5) = **≈ 6.664 个变体**,全部 DRAFT。
+
 ## 待办
-- [ ] O Sim Perfeito 剩余款式建档完成 → 全部标 ✅。
+- [ ] O Sim Perfeito 其余 18 款:创始人给价 → 批量改价。
 - [ ] 各 SKU 电商图生成 → 回传 Shopify(需公网 HTTPS)。
-- [ ] 创始人确认旧 demo 商品(9 个)是否删除/归档。
 - [ ] 上架前:核对定价、发布渠道、税费与配送设置,再将状态改 ACTIVE。
