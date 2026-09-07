@@ -1,0 +1,594 @@
+<title>海外仓进度看板</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#ECEEE9; --surface:#FFFFFF; --surface-2:#F5F7F2; --surface-3:#EEF1EA;
+    --ink:#1B2A28; --ink-soft:#54625E; --ink-faint:#84918B;
+    --line:#D8DDD3; --line-strong:#C4CBBE;
+    --accent:#0C6B5E; --accent-ink:#0A544A; --accent-wash:#E2EEEA;
+    --done:#2F7D5B; --done-wash:#E4F0E9;
+    --pending:#A96C0C; --pending-wash:#F6ECD9;
+    --urgent:#B23A2E; --urgent-wash:#F6E3E0;
+    --locked:#5C6A70; --locked-wash:#E7EAEC;
+    --shadow:0 1px 2px rgba(27,42,40,.04),0 8px 24px -12px rgba(27,42,40,.14);
+    --font-sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --r:14px; --r-sm:9px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#101614; --surface:#18211E; --surface-2:#1E2925; --surface-3:#232F2B;
+      --ink:#E7EBE5; --ink-soft:#9DABA5; --ink-faint:#77857F;
+      --line:#293531; --line-strong:#354540;
+      --accent:#37B7A2; --accent-ink:#57C9B6; --accent-wash:#16302B;
+      --done:#4EB98A; --done-wash:#163024;
+      --pending:#DBA23E; --pending-wash:#332811;
+      --urgent:#E2705F; --urgent-wash:#361E1A;
+      --locked:#8A99A0; --locked-wash:#222B2E;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101614; --surface:#18211E; --surface-2:#1E2925; --surface-3:#232F2B;
+    --ink:#E7EBE5; --ink-soft:#9DABA5; --ink-faint:#77857F;
+    --line:#293531; --line-strong:#354540;
+    --accent:#37B7A2; --accent-ink:#57C9B6; --accent-wash:#16302B;
+    --done:#4EB98A; --done-wash:#163024;
+    --pending:#DBA23E; --pending-wash:#332811;
+    --urgent:#E2705F; --urgent-wash:#361E1A;
+    --locked:#8A99A0; --locked-wash:#222B2E;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--font-sans); line-height:1.55;
+    font-size:15px; letter-spacing:.005em;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:clamp(16px,3vw,32px)}
+  .mono{font-family:var(--font-mono); font-variant-numeric:tabular-nums}
+  .num{font-family:var(--font-mono); font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+
+  /* ---------- Topbar ---------- */
+  .topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:26px}
+  .brand{display:flex; gap:14px; align-items:center}
+  .stamp{
+    width:46px; height:46px; flex:0 0 auto; border-radius:11px;
+    background:var(--accent); color:#fff; display:grid; place-items:center;
+    font-size:22px; box-shadow:var(--shadow);
+  }
+  :root[data-theme="dark"] .stamp,
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stamp{color:#08201C}}
+  .brand h1{margin:0; font-size:clamp(20px,3.4vw,27px); letter-spacing:-.01em; line-height:1.15; text-wrap:balance}
+  .brand .sub{margin:3px 0 0; color:var(--ink-soft); font-size:13.5px}
+  .brand .sub b{color:var(--ink); font-weight:600}
+  .top-right{display:flex; align-items:center; gap:10px}
+  .updated{font-size:12px; color:var(--ink-faint); text-align:right}
+  .toggle{
+    appearance:none; border:1px solid var(--line-strong); background:var(--surface);
+    color:var(--ink-soft); border-radius:999px; padding:7px 13px; font-size:12.5px;
+    font-family:var(--font-sans); cursor:pointer; display:inline-flex; gap:6px; align-items:center;
+    transition:border-color .18s,color .18s;
+  }
+  .toggle:hover{border-color:var(--accent); color:var(--accent)}
+  .toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+  /* ---------- section scaffolding ---------- */
+  section{margin-bottom:26px}
+  .eyebrow{
+    display:flex; align-items:center; gap:10px; margin:0 0 13px;
+    font-family:var(--font-mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .eyebrow::after{content:""; flex:1; height:1px; background:var(--line)}
+
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow)}
+
+  /* ---------- Overview tiles ---------- */
+  .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+  @media(max-width:820px){.tiles{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:460px){.tiles{grid-template-columns:1fr}}
+  .tile{padding:16px 16px 15px; position:relative; overflow:hidden}
+  .tile .k{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); font-family:var(--font-mono)}
+  .tile .v{font-size:17px; font-weight:650; margin:7px 0 3px; letter-spacing:-.01em}
+  .tile .m{font-size:12.5px; color:var(--ink-soft)}
+  .tile .rail{position:absolute; left:0; top:0; bottom:0; width:4px}
+
+  .pill{display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600;
+    padding:3px 9px; border-radius:999px; line-height:1.4; white-space:nowrap}
+  .pill .dot{width:6px; height:6px; border-radius:50%; background:currentColor}
+  .pill.done{color:var(--done); background:var(--done-wash)}
+  .pill.pending{color:var(--pending); background:var(--pending-wash)}
+  .pill.urgent{color:var(--urgent); background:var(--urgent-wash)}
+  .pill.locked{color:var(--locked); background:var(--locked-wash)}
+  .rail.done{background:var(--done)} .rail.pending{background:var(--pending)}
+  .rail.urgent{background:var(--urgent)} .rail.locked{background:var(--locked)}
+  .tile .status-row{margin-top:11px}
+
+  /* ---------- Urgent banner ---------- */
+  .alert{border:1px solid var(--urgent); background:var(--urgent-wash); border-radius:var(--r); padding:15px 17px}
+  .alert h2{margin:0 0 10px; font-size:14px; color:var(--urgent); display:flex; align-items:center; gap:8px; letter-spacing:.01em}
+  .alert ul{margin:0; padding:0; list-style:none; display:grid; gap:9px}
+  .alert li{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
+  .alert .date{font-family:var(--font-mono); font-size:12.5px; color:var(--urgent); font-weight:700; min-width:64px}
+  .alert .txt{flex:1; min-width:180px; font-size:13.5px; color:var(--ink)}
+  .alert .amt{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:13px; color:var(--ink); font-weight:600}
+
+  /* ---------- Two-col grid ---------- */
+  .grid2{display:grid; grid-template-columns:1.15fr 1fr; gap:22px; align-items:start}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+
+  /* costs */
+  .cost-head{padding:18px 18px 6px}
+  .cost-head .lbl{font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint)}
+  .cost-head .big{font-size:34px; font-weight:680; letter-spacing:-.02em; margin:4px 0 2px; color:var(--accent)}
+  .cost-head .big small{font-size:15px; font-weight:600; color:var(--ink-soft); margin-right:4px}
+  .cost-head .note{font-size:12.5px; color:var(--ink-soft)}
+  table{width:100%; border-collapse:collapse; font-size:13.5px}
+  .ledger{padding:8px 8px 12px}
+  .ledger table{margin-top:4px}
+  th,td{text-align:left; padding:8px 10px}
+  thead th{font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); font-weight:600; border-bottom:1px solid var(--line)}
+  tbody tr{border-bottom:1px solid var(--line)}
+  tbody tr:last-child{border-bottom:none}
+  td.amt,th.amt{text-align:right; font-family:var(--font-mono); font-variant-numeric:tabular-nums; white-space:nowrap}
+  td.d{font-family:var(--font-mono); color:var(--ink-soft); font-size:12.5px; white-space:nowrap}
+  .cap{font-size:12px; color:var(--ink-faint); padding:2px 10px 8px}
+
+  .subttl{font-size:13px; font-weight:650; color:var(--ink); padding:14px 18px 2px; display:flex; justify-content:space-between; align-items:baseline}
+  .subttl span{font-family:var(--font-mono); color:var(--pending); font-size:13px}
+
+  /* todos */
+  .todos{padding:6px 6px 8px}
+  .todo{display:flex; gap:12px; align-items:flex-start; padding:11px 12px; border-bottom:1px solid var(--line)}
+  .todo:last-child{border-bottom:none}
+  .todo .box{width:15px; height:15px; margin-top:2px; border-radius:4px; border:1.6px solid var(--line-strong); flex:0 0 auto}
+  .todo.recur .box{border-radius:50%; border-style:dashed}
+  .todo .body{flex:1; min-width:0}
+  .todo .t{font-size:13.5px; line-height:1.4}
+  .todo .meta{font-size:12px; color:var(--ink-soft); margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .todo .meta .date{font-family:var(--font-mono); font-weight:600}
+  .todo .amt{font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--ink-soft)}
+
+  /* ---------- process steppers ---------- */
+  .procwrap{display:grid; grid-template-columns:1fr 1fr; gap:22px}
+  @media(max-width:860px){.procwrap{grid-template-columns:1fr}}
+  .proc{padding:16px 18px 18px}
+  .proc h3{margin:0 0 3px; font-size:15px; letter-spacing:-.01em}
+  .proc .who{font-size:12.5px; color:var(--ink-soft); margin-bottom:14px}
+  .steps{list-style:none; margin:0; padding:0; position:relative}
+  .steps::before{content:""; position:absolute; left:8px; top:6px; bottom:14px; width:2px; background:var(--line)}
+  .step{position:relative; padding:0 0 15px 28px}
+  .step:last-child{padding-bottom:0}
+  .step .node{position:absolute; left:2px; top:2px; width:14px; height:14px; border-radius:50%; background:var(--surface); border:2px solid var(--line-strong); z-index:1}
+  .step.done .node{background:var(--done); border-color:var(--done)}
+  .step.active .node{border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-wash)}
+  .step .name{font-size:13.5px; font-weight:600}
+  .step .dur{font-size:12px; color:var(--ink-soft); margin-top:1px}
+  .step.active .name{color:var(--accent)}
+
+  /* ---------- timeline ---------- */
+  .timeline{padding:20px 18px 8px}
+  .tl{list-style:none; margin:0; padding:0; position:relative}
+  .tl::before{content:""; position:absolute; left:76px; top:4px; bottom:8px; width:2px; background:var(--line)}
+  @media(max-width:520px){.tl::before{left:60px}}
+  .ev{position:relative; display:grid; grid-template-columns:64px 1fr; gap:22px; padding:0 0 16px}
+  @media(max-width:520px){.ev{grid-template-columns:48px 1fr; gap:16px}}
+  .ev:last-child{padding-bottom:4px}
+  .ev .when{font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); text-align:right; padding-top:1px; font-variant-numeric:tabular-nums}
+  .ev .marker{position:absolute; left:70px; top:4px; width:14px; height:14px; border-radius:50%; background:var(--done); border:2px solid var(--surface); box-shadow:0 0 0 1.5px var(--done)}
+  @media(max-width:520px){.ev .marker{left:54px}}
+  .ev .what{font-size:14px; line-height:1.45}
+  .ev .what small{display:block; color:var(--ink-soft); font-size:12.5px; margin-top:1px}
+
+  footer{margin-top:34px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-faint); font-size:12px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  footer a{color:var(--accent); text-decoration:none}
+  footer a:hover{text-decoration:underline}
+
+  /* ---------- gantt ---------- */
+  .gantt{padding:16px 18px 18px}
+  .gantt-scroll{overflow-x:auto}
+  .g-inner{min-width:560px}
+  .g-row{display:grid; grid-template-columns:132px repeat(9,minmax(40px,1fr)); align-items:center; min-height:34px}
+  .g-head{border-bottom:1px solid var(--line); min-height:30px; margin-bottom:6px}
+  .g-head .mo{grid-row:1; text-align:center; font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); font-variant-numeric:tabular-nums; border-left:1px solid var(--line); padding:3px 0}
+  .g-head .yr{font-size:9.5px; color:var(--ink-faint); letter-spacing:.05em}
+  .g-row .lbl{grid-row:1; grid-column:1; font-size:12.5px; font-weight:600; padding-right:10px; line-height:1.25}
+  .g-row .lbl small{display:block; font-weight:400; color:var(--ink-soft); font-size:10.5px; font-family:var(--font-mono)}
+  .bar{grid-row:1; height:22px; border-radius:6px; display:flex; align-items:center; padding:0 8px; font-size:10.5px; white-space:nowrap; overflow:hidden}
+  .bar.solid{background:var(--accent); color:#fff}
+  :root[data-theme="dark"] .bar.solid{color:#08201C}
+  .bar.prep{background:var(--locked); color:#fff}
+  :root[data-theme="dark"] .bar.prep{color:#10171A}
+  .bar.faded{background:repeating-linear-gradient(135deg,var(--pending-wash),var(--pending-wash) 5px,transparent 5px,transparent 10px); border:1px dashed var(--pending); color:var(--pending); font-weight:600}
+  .g-legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft)}
+  .g-legend span{display:inline-flex; align-items:center; gap:6px}
+  .g-legend i{width:15px; height:11px; border-radius:3px; display:inline-block}
+  .g-note{font-size:12.5px; color:var(--ink-soft); margin:12px 0 0; line-height:1.5}
+  .g-note b{color:var(--ink)}
+  .g-milestone{grid-row:1; align-self:center; justify-self:start; font-family:var(--font-mono); font-size:11px; font-weight:700}
+  .g-milestone.opt{color:var(--done)} .g-milestone.pes{color:var(--urgent)}
+  .g-row.sub{min-height:30px}
+  .g-row.sub .lbl{font-size:11.5px; font-weight:500; padding-left:12px}
+  .g-row.sub .lbl small{font-family:var(--font-sans); font-weight:400}
+  .g-row.sub .bar{height:16px}
+  .g-sep{grid-column:1/11; grid-row:1; display:flex; align-items:center; gap:8px; margin:9px 0 2px; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:.06em; color:var(--accent)}
+  .g-sep::after{content:""; flex:1; height:1px; background:var(--line)}
+  .g-sep.p0{color:var(--locked)}
+  .g-milestone-row{margin-top:6px}
+
+  /* task detail */
+  .g-detail{margin-top:18px; display:grid; grid-template-columns:repeat(2,1fr); gap:16px}
+  @media(max-width:760px){.g-detail{grid-template-columns:1fr}}
+  .ph{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--r-sm); padding:14px 15px}
+  .ph-h{display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:650; margin-bottom:3px}
+  .ph-h .tag{font-family:var(--font-mono); font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:5px; letter-spacing:.03em}
+  .ph-h .tag.p0{background:var(--locked-wash); color:var(--locked)}
+  .ph-h .tag.p1,.ph-h .tag.p2,.ph-h .tag.p3{background:var(--accent-wash); color:var(--accent)}
+  .ph-goal{font-size:12px; color:var(--ink-soft); margin:0 0 10px; line-height:1.5}
+  .ph-dur{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-faint); margin-left:auto; white-space:nowrap}
+  .ph ul{list-style:none; margin:0; padding:0; display:grid; gap:9px}
+  .ph li{font-size:12.5px; line-height:1.45}
+  .ph li b{color:var(--ink); font-weight:650}
+  .ph li span{display:block; color:var(--ink-soft); margin-top:1px}
+  .ph li .can{display:inline-block; font-family:var(--font-mono); font-size:9.5px; font-weight:700; color:var(--done); background:var(--done-wash); border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:1px}
+
+  @media(prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="stamp" aria-hidden="true">📦</div>
+      <div>
+        <h1>海外仓进度看板</h1>
+        <p class="sub"><b>UM PORCENTO LTDA</b> · 巴西 São José dos Campos · 第三方仓储 / Fulfillment</p>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="updated mono">更新于<br>2026-08-13</div>
+      <button class="toggle" id="themeBtn" type="button" aria-label="切换深浅主题"><span id="themeIcon">◐</span><span id="themeTxt">主题</span></button>
+    </div>
+  </div>
+
+  <!-- 状态概览 -->
+  <section>
+    <p class="eyebrow">状态概览 · Status</p>
+    <div class="tiles">
+      <div class="card tile">
+        <div class="rail done"></div>
+        <div class="k">01 · 公司</div>
+        <div class="v">公司注册</div>
+        <div class="m">成立 07-15 · CNPJ 已下</div>
+        <div class="status-row"><span class="pill done"><span class="dot"></span>已完成</span></div>
+      </div>
+      <div class="card tile">
+        <div class="rail done"></div>
+        <div class="k">02 · 仓库</div>
+        <div class="v">仓库租赁</div>
+        <div class="m">钥匙已交付 08-06 · 免租期至 09-30</div>
+        <div class="status-row"><span class="pill done"><span class="dot"></span>已交付</span></div>
+      </div>
+      <div class="card tile">
+        <div class="rail pending"></div>
+        <div class="k">03 · 合规</div>
+        <div class="v">ANVISA 资质</div>
+        <div class="m">DSL 代办 · 化妆品/卫生用品/香水</div>
+        <div class="status-row"><span class="pill pending"><span class="dot"></span>办理中</span></div>
+      </div>
+      <div class="card tile">
+        <div class="rail pending"></div>
+        <div class="k">04 · 工签</div>
+        <div class="v">工作居留签证</div>
+        <div class="m">Visto Brasil · 合同 08-07 签</div>
+        <div class="status-row"><span class="pill pending"><span class="dot"></span>办理中</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 紧要提醒 -->
+  <section>
+    <div class="alert">
+      <h2>⚠ 紧要待办 / 已过期</h2>
+      <ul>
+        <li>
+          <span class="date">08-10</span>
+          <span class="txt">工签服务费首期 50%（Visto Brasil）— <b>已过今日 08-13,请确认是否已付</b></span>
+          <span class="amt">R$ 2.800,00</span>
+        </li>
+        <li>
+          <span class="date">10-01</span>
+          <span class="txt">仓库免租期结束,首次月租到期</span>
+          <span class="amt">R$ 25.000,00</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 费用 + 待办 -->
+  <section>
+    <div class="grid2">
+
+      <div class="card">
+        <div class="cost-head">
+          <div class="lbl">已付开办费用合计 · Paid</div>
+          <div class="big"><small>R$</small><span class="num">116.818,99</span></div>
+          <div class="note">截至 2026-08-13,共 5 笔</div>
+        </div>
+        <div class="ledger">
+          <table>
+            <thead>
+              <tr><th>日期</th><th>费用项</th><th class="amt">金额 (R$)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="d">07-13</td><td>公司政府注册费</td><td class="amt">218,99</td></tr>
+              <tr><td class="d">07-16</td><td>注册会计服务费</td><td class="amt">1.600,00</td></tr>
+              <tr><td class="d">07-22</td><td>ANVISA 改造服务费</td><td class="amt">15.000,00</td></tr>
+              <tr><td class="d">07-27</td><td>仓库押金（3 月租）</td><td class="amt">75.000,00</td></tr>
+              <tr><td class="d">07-27</td><td>提前一个月房租</td><td class="amt">25.000,00</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="subttl">待付 / 后续 <span>预计 R$ 56.045,90+</span></div>
+        <div class="ledger">
+          <table>
+            <tbody>
+              <tr><td class="d">08-10</td><td>工签服务费 首期</td><td class="amt">2.800,00</td></tr>
+              <tr><td class="d">初期</td><td>工签政府规费 GRU ×2</td><td class="amt">372,90</td></tr>
+              <tr><td class="d">10-01</td><td>仓库月租（每月）</td><td class="amt">25.000,00</td></tr>
+              <tr><td class="d">获批时</td><td>工签服务费 尾期</td><td class="amt">2.800,00</td></tr>
+              <tr><td class="d">每 15 日</td><td>会计月费</td><td class="amt">300,00</td></tr>
+              <tr><td class="d">待报价</td><td>药师 RT(CRF登记+月费)</td><td class="amt">?</td></tr>
+            </tbody>
+          </table>
+          <p class="cap">GRU = R$ 168,13 + R$ 204,77;月租、会计费、RT 费为周期性支出。RT 费待 DSL 报价。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="subttl">待办清单 · To-do</div>
+        <div class="todos">
+          <div class="todo">
+            <div class="box"></div>
+            <div class="body">
+              <div class="t">付工签首期 50%</div>
+              <div class="meta"><span class="date" style="color:var(--urgent)">08-10 已过</span><span class="amt">R$ 2.800</span></div>
+            </div>
+            <span class="pill urgent"><span class="dot"></span>紧急</span>
+          </div>
+          <div class="todo">
+            <div class="box"></div>
+            <div class="body">
+              <div class="t">备工签材料：无犯罪记录 + 出生证明<b>翻译 + 海牙认证</b></div>
+              <div class="meta"><span>关键路径,越早越好</span></div>
+            </div>
+            <span class="pill urgent"><span class="dot"></span>关键</span>
+          </div>
+          <div class="todo">
+            <div class="box"></div>
+            <div class="body">
+              <div class="t">向 DSL 核实<b>药师 RT</b>的依据 + 落实 CRF 登记</div>
+              <div class="meta"><span>官方:PBA 递交只需建筑师 ART;药师是否递交前置待 DSL 说明依据</span></div>
+            </div>
+            <span class="pill urgent"><span class="dot"></span>关键</span>
+          </div>
+          <div class="todo">
+            <div class="box"></div>
+            <div class="body">
+              <div class="t">付工签政府规费 GRU ×2</div>
+              <div class="meta"><span class="date">流程初期</span><span class="amt">R$ 372,90</span></div>
+            </div>
+            <span class="pill pending"><span class="dot"></span>待办</span>
+          </div>
+          <div class="todo">
+            <div class="box"></div>
+            <div class="body">
+              <div class="t">付仓库首次月租</div>
+              <div class="meta"><span class="date">10-01</span><span class="amt">R$ 25.000</span></div>
+            </div>
+            <span class="pill pending"><span class="dot"></span>待办</span>
+          </div>
+          <div class="todo recur">
+            <div class="box"></div>
+            <div class="body">
+              <div class="t">付会计月费</div>
+              <div class="meta"><span class="date">每月 15 日</span><span class="amt">R$ 300</span></div>
+            </div>
+            <span class="pill locked"><span class="dot"></span>周期</span>
+          </div>
+          <div class="todo">
+            <div class="box"></div>
+            <div class="body">
+              <div class="t">跟进 ANVISA 三模块进展（PBA/LTA → LS → AFE）</div>
+              <div class="meta"><span>获批前不可做化妆品类（卫生监管）业务 · 范围待 DSL 确认</span></div>
+            </div>
+            <span class="pill locked"><span class="dot"></span>限制中</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 流程进度 -->
+  <section>
+    <p class="eyebrow">办理流程 · In progress</p>
+    <div class="card procwrap">
+      <div class="proc">
+        <h3>ANVISA 合规</h3>
+        <div class="who">DSL Consult · 提案 Nº 1181 · R$ 15.000（已付）</div>
+        <ol class="steps">
+          <li class="step active"><span class="node"></span><div class="name">PBA/LTA 建筑项目</div><div class="dur">DSL ~10 工作日 · VISA 审核 30–90 天</div></li>
+          <li class="step"><span class="node"></span><div class="name">LS 卫生许可</div><div class="dur">DSL ~20 工作日 · VISA 审核 30–90 天</div></li>
+          <li class="step"><span class="node"></span><div class="name">AFE 运营授权</div><div class="dur">DSL ~5 工作日 · VISA 审核 30–60 天</div></li>
+        </ol>
+      </div>
+      <div class="proc">
+        <h3>工作居留签证</h3>
+        <div class="who">Visto Brasil · RN 02/2017 · R$ 5.600 + GRU</div>
+        <ol class="steps">
+          <li class="step done"><span class="node"></span><div class="name">签服务合同</div><div class="dur">已完成 · 2026-08-07</div></li>
+          <li class="step active"><span class="node"></span><div class="name">备齐并提交材料</div><div class="dur">需翻译 + 海牙认证 · 进行中</div></li>
+          <li class="step"><span class="node"></span><div class="name">移民委员会审批</div><div class="dur">交件后约 45 天</div></li>
+          <li class="step"><span class="node"></span><div class="name">获批 · 护照盖章</div><div class="dur">外交部下令 · 地点不可改</div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 合规排期 -->
+  <section>
+    <p class="eyebrow">合规排期 · ANVISA 三模块串行</p>
+    <div class="card gantt">
+      <div class="gantt-scroll">
+        <div class="g-inner">
+
+          <div class="g-row g-head">
+            <span class="lbl"></span>
+            <span class="mo" style="grid-column:2"><span class="yr">'26</span><br>8月</span>
+            <span class="mo" style="grid-column:3">9月</span>
+            <span class="mo" style="grid-column:4">10月</span>
+            <span class="mo" style="grid-column:5">11月</span>
+            <span class="mo" style="grid-column:6">12月</span>
+            <span class="mo" style="grid-column:7"><span class="yr">'27</span><br>1月</span>
+            <span class="mo" style="grid-column:8">2月</span>
+            <span class="mo" style="grid-column:9">3月</span>
+            <span class="mo" style="grid-column:10">4月</span>
+          </div>
+
+          <!-- 阶段0 -->
+          <div class="g-row"><span class="g-sep p0">阶段0 · 前置准备(现在并行)</span></div>
+          <div class="g-row sub"><span class="lbl">交付 .dwg 平面图</span><span class="bar prep" style="grid-column:2/3"></span></div>
+          <div class="g-row sub"><span class="lbl">物业物理改造</span><span class="bar prep" style="grid-column:2/5"></span></div>
+          <div class="g-row sub"><span class="lbl">药师 RT 登记(CRF)<small style="color:var(--urgent)">· 递交前置</small></span><span class="bar prep" style="grid-column:2/4"></span></div>
+          <div class="g-row sub"><span class="lbl">ANVISA 账号预注册</span><span class="bar prep" style="grid-column:2/3"></span></div>
+
+          <!-- ① PBA -->
+          <div class="g-row"><span class="g-sep p1">① PBA/LTA · 建筑批准</span></div>
+          <div class="g-row sub"><span class="lbl">DSL 制图 + ART</span><span class="bar solid" style="grid-column:2/4"></span></div>
+          <div class="g-row sub"><span class="lbl">递交 + VISA 审核</span><span class="bar solid" style="grid-column:3/5"></span><span class="bar faded" style="grid-column:5/6"></span></div>
+
+          <!-- ② LS -->
+          <div class="g-row"><span class="g-sep p2">② LS · 卫生许可 + 现场检查</span></div>
+          <div class="g-row sub"><span class="lbl">DSL 备料<small>(手册/POP/培训)</small></span><span class="bar solid" style="grid-column:3/5"></span></div>
+          <div class="g-row sub"><span class="lbl">递交 LS + 现场检查 + 审核</span><span class="bar solid" style="grid-column:4/6"></span><span class="bar faded" style="grid-column:6/8"></span></div>
+          <div class="g-row sub"><span class="lbl">复核检查报告</span><span class="bar solid" style="grid-column:5/6"></span></div>
+
+          <!-- ③ AFE -->
+          <div class="g-row"><span class="g-sep p3">③ AFE · 运营授权</span></div>
+          <div class="g-row sub"><span class="lbl">规模认定 + 递交 AFE</span><span class="bar solid" style="grid-column:6/7"></span></div>
+          <div class="g-row sub"><span class="lbl">ANVISA 审核 + 公报公布</span><span class="bar solid" style="grid-column:6/8"></span><span class="bar faded" style="grid-column:8/11"></span></div>
+
+          <!-- 里程碑 -->
+          <div class="g-row g-milestone-row">
+            <span class="lbl" style="font-weight:600;color:var(--ink);font-size:11.5px">🏁 运营就绪</span>
+            <span class="g-milestone opt" style="grid-column:7">▲ 乐观 ~1月</span>
+            <span class="g-milestone pes" style="grid-column:10">▲ 保守 ~4月</span>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="g-legend">
+        <span><i style="background:var(--locked)"></i>前置准备</span>
+        <span><i style="background:var(--accent)"></i>乐观周期(审核按 30 天)</span>
+        <span><i style="background:var(--pending-wash);border:1px dashed var(--pending)"></i>保守延伸(审核 60–90 天)</span>
+      </div>
+      <p class="g-note">三模块<b>串行依赖</b>:AFE 需 LS 现场检查出具满意报告为前提;LS 现场检查要求建筑<b>先按 PBA 批准方案改造到位</b>。<b>压缩关键</b>:PBA 审核等待期内,让 DSL 并行备好 LS 材料 + AFE 预注册,并同步完成物业改造。<b>起跑发令枪</b>:尽快把可编辑 <span class="mono">.dwg</span> 平面图给 DSL。整体主线约 <b>4–8 个月</b>,规划建议留至 2027 Q1。</p>
+
+      <div class="g-detail">
+        <div class="ph">
+          <div class="ph-h"><span class="tag p0">阶段0</span>前置准备<span class="ph-dur">现在并行</span></div>
+          <p class="ph-goal">挂靠 CNPJ + 地址(均已具备),不依赖审批 —— 加速的关键。</p>
+          <ul>
+            <li><b>交付 .dwg 平面图</b><span class="can">立即</span><span>PBA 制图的原始输入,缺它整条线停摆。</span></li>
+            <li><b>物业物理改造</b>(WC PNE / DML / 废弃物间 / 通风)<span>满足卫生检查的硬件门槛,检查时场所须达标。</span></li>
+            <li><b>药师 RT 登记(CRF)</b><span class="can" style="color:var(--pending);background:var(--pending-wash)">依据待核</span><span>DSL 称递交前要药师;但官方规则里 PBA 递交只需建筑师 ART,药师是 LS/AFE 才强制。请 DSL 说明依据 —— 决定现在就付 RT 月费还是可推迟。</span></li>
+            <li><b>ANVISA 账号预注册</b><span class="can">可前置</span><span>AFE 阶段要用,提前建主体到时直接递交。</span></li>
+          </ul>
+        </div>
+
+        <div class="ph">
+          <div class="ph-h"><span class="tag p1">①</span>PBA/LTA 建筑项目<span class="ph-dur">DSL~2周·审核30–90天</span></div>
+          <p class="ph-goal">让 VISA 批准"建筑布局符合卫生规范" —— LS 的前提。</p>
+          <ul>
+            <li><b>建筑图</b>(家具/剖面/立面/动线)<span>证明分区合理、物流动线不交叉污染。</span></li>
+            <li><b>实施图 + 说明书</b><span>场所在园区的定位;文字说明用途、用材、卫生措施。</span></li>
+            <li><b>ART 技术责任注册</b><span>资质工程师签字,对图纸承担法律责任。</span></li>
+            <li><b>递交 VISA 审核</b><span>官方批准建筑方案,批准后方可进入 LS。</span></li>
+          </ul>
+        </div>
+
+        <div class="ph">
+          <div class="ph-h"><span class="tag p2">②</span>LS 卫生许可<span class="ph-dur">DSL~4周·审核30–90天</span></div>
+          <p class="ph-goal">拿卫生许可 + 出具满意检查报告(AFE 前提)。需建筑先按批准方案改好。</p>
+          <ul>
+            <li><b>良好操作手册 + POP</b><span>规定全流程卫生标准,把每步操作写成可执行程序;检查逐条核对。</span></li>
+            <li><b>SGQ 质量体系培训</b><span>培训员工按手册/POP 执行,建立质量体系。</span></li>
+            <li><b>递交 LS + 陪同现场检查</b><span>VISA 实地核对"实物=批准图纸+卫生要求"。</span></li>
+            <li><b>复核检查报告</b><span>确认结论满意 —— 能否进入 AFE 的关键。</span></li>
+          </ul>
+        </div>
+
+        <div class="ph">
+          <div class="ph-h"><span class="tag p3">③</span>AFE 运营授权<span class="ph-dur">DSL~1周·审核30–60天</span></div>
+          <p class="ph-goal">取得联邦级(ANVISA)运营授权 —— 化妆品分销/进口的最终合法资质。</p>
+          <ul>
+            <li><b>规模认定 Enquadramento</b><span>按企业规模定 ANVISA 费率与分类。</span></li>
+            <li><b>递交 AFE + 跟进至公布</b><span>提交联邦授权申请,处理补正,跟进到批准。</span></li>
+            <li><b>公布于联邦公报 DOU</b><span>授权正式生效,此后方可运营监管类产品。</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 时间线 -->
+  <section>
+    <p class="eyebrow">时间线 · Timeline</p>
+    <div class="card timeline">
+      <ul class="tl">
+        <li class="ev"><div class="when">05-18</div><span class="marker"></span><div class="what">仓库消防证 CLCB 签发<small>有效期至 2029-05-18</small></div></li>
+        <li class="ev"><div class="when">07-13</div><span class="marker"></span><div class="what">付公司政府注册费 R$ 218,99</div></li>
+        <li class="ev"><div class="when">07-15</div><span class="marker"></span><div class="what">公司 UM PORCENTO LTDA 成立<small>JUCESP 登记 · 注册资本 R$ 100.000</small></div></li>
+        <li class="ev"><div class="when">07-16</div><span class="marker"></span><div class="what">CNPJ、市级 CCM 注册;Simples Nacional 税制生效<small>付会计服务费 R$ 1.600</small></div></li>
+        <li class="ev"><div class="when">07-20</div><span class="marker"></span><div class="what">DSL 出具 ANVISA 合规提案 Nº 1181</div></li>
+        <li class="ev"><div class="when">07-22</div><span class="marker"></span><div class="what">付 ANVISA 改造服务费 R$ 15.000</div></li>
+        <li class="ev"><div class="when">07-23</div><span class="marker"></span><div class="what">签署仓库租赁合同<small>Galpão 02 · 900,57 m² · 租期 36 个月</small></div></li>
+        <li class="ev"><div class="when">07-27</div><span class="marker"></span><div class="what">付仓库押金 R$ 75.000 + 提前一月房租 R$ 25.000</div></li>
+        <li class="ev"><div class="when">07-31</div><span class="marker"></span><div class="what">房屋入场验收<small>状态:全新 / 良好</small></div></li>
+        <li class="ev"><div class="when">08-01</div><span class="marker"></span><div class="what">租约起算<small>含 1 个月免租期</small></div></li>
+        <li class="ev"><div class="when">08-06</div><span class="marker"></span><div class="what">仓库钥匙交付</div></li>
+        <li class="ev"><div class="when">08-07</div><span class="marker"></span><div class="what">签署工签服务合同（Visto Brasil）</div></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <span>UM PORCENTO LTDA · CNPJ 68.040.692/0001-35 · 数据以 Google Drive 原件与合同为准</span>
+    <span class="mono">看板生成 2026-08-13</span>
+  </footer>
+
+</div>
+
+<script>
+  (function(){
+    var root=document.documentElement, btn=document.getElementById('themeBtn'),
+        icon=document.getElementById('themeIcon'), txt=document.getElementById('themeTxt');
+    function sysDark(){return window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches}
+    function cur(){var t=root.getAttribute('data-theme'); return t?t:(sysDark()?'dark':'light')}
+    function apply(t){
+      root.setAttribute('data-theme',t);
+      var dark=t==='dark';
+      icon.textContent=dark?'☾':'☀';
+      txt.textContent=dark?'深色':'浅色';
+    }
+    apply(cur());
+    btn.addEventListener('click',function(){apply(cur()==='dark'?'light':'dark')});
+  })();
+</script>
