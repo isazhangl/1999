@@ -69,6 +69,15 @@ image request:
    unseen sides are plausible reconstructions, not exact captures — flag this to
    the user. For pendants/earrings/bracelets use the analogous set (front, angled,
    detail).
+2.7. **Self-check EVERY generated image before showing it (mandatory).** After
+   downloading a result, visually compare the ring in the output against the
+   reference photo / real product and confirm ALL of: same stone cut & shape,
+   same number and type of side stones, same setting/prong style, same metal
+   colour, and exactly ONE ring resting on the prop (no doubled rings, no hand
+   or finger unless intended). If the design drifted in any way, DISCARD and
+   regenerate — NEVER present a drifted ring as the product; a wrong design
+   misrepresents real inventory. State the fidelity-check outcome when
+   presenting ("ring matches reference ✓").
 3. **Write specific, commercial prompts.** Say what the image should sell, name
    the product's role in the scene, and specify environment, lighting, camera
    angle, surface, props, and mood when they matter. Diamonds specifically:
