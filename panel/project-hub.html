@@ -1,0 +1,918 @@
+<title>项目总控台</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+/* Layout: a working desk. Left = every project as a card (grouped by stage / role / focus),
+   right = one merged "what's next" list across all projects. Stacks on phones, list first. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #f6f8fa;
+  --ink: #16202a;
+  --muted: #5b6875;
+  --faint: #8a96a3;
+  --line: #d9dfe5;
+  --accent: #2a45c9;
+  --accent-soft: #e3e8fb;
+  --on-accent: #ffffff;
+
+  --ok: #1f7a4d;     --ok-soft: #e1f2e8;
+  --risk: #a05d00;   --risk-soft: #fbeed8;
+  --bad: #b42335;    --bad-soft: #fbe3e6;
+
+  --r-lead: #2a45c9;     --r-lead-soft: #e3e8fb;
+  --r-partner: #7a3db8;  --r-partner-soft: #efe5f9;
+  --r-advisor: #9a5a12;  --r-advisor-soft: #f7ebdc;
+  --r-exec: #0f7472;     --r-exec-soft: #dcf1f0;
+  --r-investor: #3d7a1c; --r-investor-soft: #e6f2dc;
+  --r-support: #5b6875;  --r-support-soft: #e8ecf0;
+
+  --f-display: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(22, 32, 42, .06), 0 4px 16px rgba(22, 32, 42, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1319; --surface: #161d25; --surface-2: #1b232c; --ink: #e5eaef; --muted: #9aa6b2; --faint: #6f7c88; --line: #28323d;
+    --accent: #8197ff; --accent-soft: #232c52; --on-accent: #0e1319;
+    --ok: #5cc98f; --ok-soft: #173326; --risk: #f0b45a; --risk-soft: #3a2a12; --bad: #ff7d8c; --bad-soft: #3d1a20;
+    --r-lead: #8197ff; --r-lead-soft: #232c52; --r-partner: #c39af0; --r-partner-soft: #33244a; --r-advisor: #e7b06a; --r-advisor-soft: #3a2b18;
+    --r-exec: #5fd0cc; --r-exec-soft: #15363a; --r-investor: #95d46c; --r-investor-soft: #22341a; --r-support: #a7b2bd; --r-support-soft: #262f38;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1319; --surface: #161d25; --surface-2: #1b232c; --ink: #e5eaef; --muted: #9aa6b2; --faint: #6f7c88; --line: #28323d;
+  --accent: #8197ff; --accent-soft: #232c52; --on-accent: #0e1319;
+  --ok: #5cc98f; --ok-soft: #173326; --risk: #f0b45a; --risk-soft: #3a2a12; --bad: #ff7d8c; --bad-soft: #3d1a20;
+  --r-lead: #8197ff; --r-lead-soft: #232c52; --r-partner: #c39af0; --r-partner-soft: #33244a; --r-advisor: #e7b06a; --r-advisor-soft: #3a2b18;
+  --r-exec: #5fd0cc; --r-exec-soft: #15363a; --r-investor: #95d46c; --r-investor-soft: #22341a; --r-support: #a7b2bd; --r-support-soft: #262f38;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 20px; }
+
+/* ---------- top bar ---------- */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }
+.top h1 { font-family: var(--f-display); font-size: 28px; line-height: 1.2; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.top .date { color: var(--muted); margin: 4px 0 0; }
+.top-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 7px 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { border-color: var(--faint); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--bad); }
+.btn.danger.armed { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.btn:disabled { opacity: .55; cursor: default; }
+.badge-ro { font-size: 12px; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 10px; }
+
+/* ---------- summary ---------- */
+.summary {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 0;
+}
+.sum-stats { display: flex; flex-wrap: wrap; }
+.stat { padding: 14px 18px; display: grid; gap: 2px; min-width: 110px; flex: 1 1 110px; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat .n { font-family: var(--f-mono); font-size: 24px; font-weight: 500; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .l { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+.stat .sub { color: var(--faint); font-size: 12px; }
+.stat.alert .n { color: var(--bad); }
+.roles { border-left: 1px solid var(--line); padding: 14px 18px; display: grid; gap: 8px; align-content: center; min-width: 0; }
+.roles h2 { margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; }
+.rolebar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--surface-2); gap: 2px; }
+.rolebar span { display: block; height: 100%; }
+.rolekeys { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+.rolekeys .k { display: inline-flex; align-items: center; gap: 6px; }
+.rolekeys .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.rolekeys b { font-family: var(--f-mono); font-weight: 500; }
+
+/* ---------- main grid ---------- */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 5px 12px; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; }
+.toolbar .lbl { color: var(--muted); font-size: 13px; margin-right: 6px; }
+
+.group { display: grid; gap: 10px; }
+.group + .group { margin-top: 22px; }
+.group-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.group-h h3 { margin: 0; font-size: 15px; font-weight: 700; }
+.group-h .cnt { font-family: var(--f-mono); color: var(--faint); font-size: 13px; }
+.group-h .hint { color: var(--faint); font-size: 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+
+/* ---------- project card ---------- */
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 16px 16px 12px; display: grid; gap: 12px; align-content: start; min-width: 0;
+  box-shadow: var(--shadow);
+}
+.card.is-done, .card.is-paused { box-shadow: none; background: var(--surface-2); }
+.card-h { display: grid; gap: 2px; min-width: 0; }
+.card-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.pname {
+  font-family: var(--f-display); font-size: 18px; font-weight: 700; line-height: 1.3;
+  border: 0; background: none; padding: 0; text-align: left; color: var(--ink); min-width: 0; overflow-wrap: anywhere;
+}
+.pname:hover { color: var(--accent); }
+.tagline { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.pill { font-size: 12px; border-radius: 999px; padding: 1px 9px; white-space: nowrap; font-weight: 500; flex: none; }
+.h-ok { color: var(--ok); background: var(--ok-soft); }
+.h-risk { color: var(--risk); background: var(--risk-soft); }
+.h-blocked { color: var(--bad); background: var(--bad-soft); }
+
+.role { display: grid; gap: 4px; padding: 10px 12px; border-radius: 8px; background: var(--rs); min-width: 0; }
+.role-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.role-type { font-size: 12px; font-weight: 700; color: var(--rc); letter-spacing: .06em; }
+.role-name { font-weight: 500; overflow-wrap: anywhere; }
+.role-note { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.role-lead { --rc: var(--r-lead); --rs: var(--r-lead-soft); }
+.role-partner { --rc: var(--r-partner); --rs: var(--r-partner-soft); }
+.role-advisor { --rc: var(--r-advisor); --rs: var(--r-advisor-soft); }
+.role-exec { --rc: var(--r-exec); --rs: var(--r-exec-soft); }
+.role-investor { --rc: var(--r-investor); --rs: var(--r-investor-soft); }
+.role-support { --rc: var(--r-support); --rs: var(--r-support-soft); }
+
+.stage { display: grid; gap: 6px; }
+.track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+.track li { height: 6px; border-radius: 2px; background: var(--line); }
+.track li.past { background: var(--accent-soft); }
+.track li.now { background: var(--accent); }
+.track.off li { background: var(--line); }
+.track-labels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; font-size: 11px; color: var(--faint); }
+.track-labels span.now { color: var(--accent); font-weight: 700; }
+.stage-note { margin: 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.stage-note b { color: var(--ink); font-weight: 500; }
+.off-tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; margin-right: 6px; }
+
+.ms { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 13px; border-top: 1px dashed var(--line); padding-top: 10px; flex-wrap: wrap; }
+.ms .ms-t { min-width: 0; overflow-wrap: anywhere; }
+.ms .ms-t small { color: var(--faint); display: block; font-size: 11px; letter-spacing: .04em; }
+.ms .ms-d { color: var(--muted); white-space: nowrap; }
+.ms .ms-d.late { color: var(--bad); }
+.ms .ms-d.soon { color: var(--risk); }
+
+.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.task { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 3px 0; font-size: 13px; }
+.task input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; }
+.task label { overflow-wrap: anywhere; cursor: pointer; }
+.due { font-family: var(--f-mono); font-size: 11px; color: var(--faint); white-space: nowrap; padding-top: 2px; }
+.due.late { color: var(--bad); }
+.due.soon { color: var(--risk); }
+.more { font-size: 12px; color: var(--faint); padding-left: 23px; }
+.no-tasks { font-size: 13px; color: var(--faint); margin: 0; }
+
+.card-f { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding-top: 8px; font-size: 12px; color: var(--faint); flex-wrap: wrap; }
+.card-f .links { display: flex; gap: 10px; flex-wrap: wrap; }
+.card-f a { color: var(--accent); text-decoration: none; }
+.card-f a:hover { text-decoration: underline; }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 12px; }
+
+/* ---------- next-up list ---------- */
+.next { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: grid; min-width: 0; }
+.next-h { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.next-h h2 { margin: 0; font-size: 15px; }
+.next-h .cnt { font-family: var(--f-mono); font-size: 12px; color: var(--faint); }
+.next-list { list-style: none; margin: 0; padding: 0 16px; display: grid; max-height: 60vh; overflow-y: auto; }
+.next-list .sec { font-size: 11px; letter-spacing: .06em; color: var(--faint); padding: 10px 0 4px; }
+.todo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); align-items: start; }
+.sec + .todo { border-top: 0; }
+.todo input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; }
+.todo label { cursor: pointer; overflow-wrap: anywhere; font-size: 13px; }
+.todo .meta { display: flex; gap: 8px; align-items: center; margin-top: 2px; flex-wrap: wrap; }
+.tproj { font-size: 11px; border-radius: 4px; padding: 0 6px; color: var(--rc); background: var(--rs); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.next-empty { color: var(--faint); font-size: 13px; padding: 4px 0 12px; margin: 0; }
+.showall { border: 0; background: none; color: var(--accent); font-size: 12px; padding: 8px 0 4px; text-align: left; }
+.quick { border-top: 1px solid var(--line); padding: 12px 16px 14px; display: grid; gap: 8px; }
+.quick h3 { margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; }
+.quick-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.field, .quick input, .quick select {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 9px; min-width: 0; width: 100%;
+}
+.quick button { white-space: nowrap; }
+
+/* ---------- empty / status ---------- */
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 28px 22px; display: grid; gap: 10px; justify-items: start; }
+.empty h3 { margin: 0; font-family: var(--f-display); font-size: 18px; }
+.empty p { margin: 0; color: var(--muted); max-width: 52ch; }
+
+/* ---------- editor ---------- */
+dialog.editor {
+  border: 1px solid var(--line); border-radius: 12px; padding: 0; background: var(--surface); color: var(--ink);
+  width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 32px); box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+}
+dialog.editor::backdrop { background: rgba(10, 16, 22, .45); }
+.ed { display: grid; max-height: calc(100vh - 34px); }
+.ed-h { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ed-h h2 { margin: 0; font-family: var(--f-display); font-size: 19px; }
+.ed-b { padding: 16px 20px; overflow-y: auto; display: grid; gap: 18px; }
+.ed-f { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ed-f .right { display: flex; gap: 8px; margin-left: auto; }
+.fs { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+.fs legend, .fl { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; padding: 0; margin-bottom: 2px; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.lf { display: grid; gap: 4px; min-width: 0; }
+textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { position: relative; }
+.chip input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.chip span { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; background: var(--surface); }
+.chip input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip.role-chip input:checked + span { border-color: var(--rc); background: var(--rs); color: var(--rc); }
+.help { font-size: 12px; color: var(--faint); margin: 0; }
+.ed-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ed-task { display: grid; grid-template-columns: auto minmax(0, 1fr) 140px auto; gap: 8px; align-items: center; }
+.ed-task input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+.ed-task .x { border: 0; background: none; color: var(--faint); font-size: 18px; line-height: 1; padding: 2px 6px; }
+.ed-task .x:hover { color: var(--bad); }
+.ed-err { color: var(--bad); font-size: 13px; margin: 0; }
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); border-radius: 8px; padding: 9px 14px; font-size: 13px;
+  display: flex; gap: 14px; align-items: center; box-shadow: var(--shadow); z-index: 50; max-width: calc(100vw - 32px);
+}
+.toast button { border: 0; background: none; color: var(--accent-soft); font-weight: 700; padding: 0; }
+
+@media (max-width: 960px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .next { position: static; order: -1; }
+  .next-list { max-height: none; }
+  .summary { grid-template-columns: minmax(0, 1fr); }
+  .roles { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 560px) {
+  .top h1 { font-size: 24px; }
+  .stat { padding: 12px 14px; min-width: 50%; flex-basis: 50%; }
+  .stat + .stat { border-left: 0; }
+  .stat:nth-child(even) { border-left: 1px solid var(--line); }
+  .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .cards { grid-template-columns: minmax(0, 1fr); }
+  .row2 { grid-template-columns: minmax(0, 1fr); }
+  .ed-task { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .ed-task input[type="date"] { grid-column: 2 / 3; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card { transition: border-color .15s ease; }
+  .card:hover { border-color: var(--faint); }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>项目总控台</h1>
+      <p class="date" id="today">&nbsp;</p>
+    </div>
+    <div class="top-actions">
+      <span class="badge-ro" id="ro" hidden>只读</span>
+      <button class="btn primary" id="btn-new" type="button">＋ 新建项目</button>
+    </div>
+  </header>
+
+  <section class="summary" id="summary" aria-label="总览"></section>
+
+  <div class="main">
+    <section aria-label="项目">
+      <div class="toolbar">
+        <div>
+          <span class="lbl">分组</span>
+          <div class="seg" id="groupby" role="group" aria-label="分组方式">
+            <button type="button" data-g="stage">按阶段</button>
+            <button type="button" data-g="role">按我的定位</button>
+            <button type="button" data-g="focus">按投入度</button>
+            <button type="button" data-g="none">不分组</button>
+          </div>
+        </div>
+        <label class="toggle" for="showdone"><input type="checkbox" id="showdone"> 显示已结束的项目</label>
+      </div>
+      <div id="projects"></div>
+    </section>
+
+    <aside class="next" aria-label="接下来要做">
+      <div class="next-h"><h2>接下来要做</h2><span class="cnt" id="next-cnt"></span></div>
+      <ul class="next-list" id="next-list"></ul>
+      <form class="quick" id="quick" autocomplete="off">
+        <h3>快速加一条待办</h3>
+        <input id="q-text" type="text" placeholder="要做什么？" maxlength="200">
+        <div class="quick-row">
+          <select id="q-proj" aria-label="属于哪个项目"></select>
+          <input id="q-due" type="date" aria-label="截止日期">
+        </div>
+        <button class="btn primary" type="submit" id="q-add">添加</button>
+      </form>
+    </aside>
+  </div>
+</div>
+
+<dialog class="editor" id="editor" aria-labelledby="ed-title">
+  <form class="ed" id="ed-form" method="dialog" autocomplete="off">
+    <div class="ed-h">
+      <h2 id="ed-title">编辑项目</h2>
+      <button class="btn" type="button" data-close>关闭</button>
+    </div>
+    <div class="ed-b" id="ed-body"></div>
+    <div class="ed-f">
+      <button class="btn danger" type="button" id="ed-del">删除项目</button>
+      <div class="right">
+        <button class="btn" type="button" data-close>取消</button>
+        <button class="btn primary" type="submit" id="ed-save">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+  const STAGES = [
+    { k: 'idea', l: '构想' }, { k: 'validate', l: '验证' }, { k: 'build', l: '搭建' },
+    { k: 'launch', l: '上线' }, { k: 'grow', l: '增长' }, { k: 'steady', l: '稳定' },
+  ];
+  const OFF_STAGES = [{ k: 'paused', l: '暂停' }, { k: 'done', l: '已结束' }];
+  const ALL_STAGES = STAGES.concat(OFF_STAGES);
+  const ROLES = [
+    { k: 'lead', l: '主导', d: '我拍板，我对结果负责' },
+    { k: 'partner', l: '合伙', d: '共同经营，各管一块' },
+    { k: 'advisor', l: '顾问', d: '给方向和建议，不负责执行' },
+    { k: 'exec', l: '执行', d: '按既定方向把事做完' },
+    { k: 'investor', l: '投资', d: '出资，看结果' },
+    { k: 'support', l: '支持', d: '偶尔搭把手' },
+  ];
+  const FOCUS = [
+    { k: 'main', l: '主攻', d: '这段时间的主要精力' },
+    { k: 'keep', l: '维持', d: '保持推进，不加码' },
+    { k: 'watch', l: '观望', d: '只跟进关键节点' },
+  ];
+  const HEALTH = [{ k: 'ok', l: '顺利' }, { k: 'risk', l: '有风险' }, { k: 'blocked', l: '卡住' }];
+  const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+
+  const byK = (list, k) => list.find(x => x.k === k);
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const rid = () => Math.random().toString(36).slice(2, 10);
+  const nowISO = () => new Date().toISOString();
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const local = {
+    get(k, d) { try { const v = localStorage.getItem('hub:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('hub:' + k, JSON.stringify(v)); } catch {} },
+  };
+
+  const state = {
+    projects: [],
+    status: 'loading',          // loading | ready | none | error
+    canWrite: true,
+    groupBy: local.get('groupBy', 'stage'),
+    showDone: local.get('showDone', false),
+    showAllNext: false,
+  };
+  let DB = null;
+
+  /* ---------- dates ---------- */
+  function todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function parseISO(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function daysUntil(iso) {
+    const t = parseISO(iso); if (!t) return null;
+    const n = new Date(); n.setHours(0, 0, 0, 0);
+    return Math.round((t - n) / 86400000);
+  }
+  function md(iso) { const t = parseISO(iso); return t ? `${t.getMonth() + 1}月${t.getDate()}日` : ''; }
+  function dueInfo(iso) {
+    const n = daysUntil(iso);
+    if (n == null) return null;
+    if (n < 0) return { t: `逾期 ${-n} 天`, c: 'late' };
+    if (n === 0) return { t: '今天', c: 'soon' };
+    if (n === 1) return { t: '明天', c: 'soon' };
+    if (n <= 7) return { t: `${n} 天后`, c: 'soon' };
+    return { t: md(iso), c: '' };
+  }
+  (() => {
+    const d = new Date();
+    $('#today').textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · 星期${WEEK[d.getDay()]}`;
+  })();
+
+  /* ---------- derived ---------- */
+  const isActive = p => p.stage !== 'done';
+  const openTasks = p => (p.tasks || []).filter(t => !t.done);
+  const focusRank = k => ({ main: 0, keep: 1, watch: 2 }[k] ?? 3);
+  const healthRank = k => ({ blocked: 0, risk: 1, ok: 2 }[k] ?? 3);
+  function sortProjects(list) {
+    return list.slice().sort((a, b) =>
+      (a.stage === 'done') - (b.stage === 'done') ||
+      focusRank(a.focus) - focusRank(b.focus) ||
+      healthRank(a.health) - healthRank(b.health) ||
+      String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+  }
+  function taskSortKey(t) {
+    const n = daysUntil(t.due);
+    return n == null ? 1e6 : n;
+  }
+  function find(id) { return state.projects.find(p => p.id === id); }
+
+  /* ---------- render: summary ---------- */
+  function renderSummary() {
+    const act = state.projects.filter(isActive);
+    const tasks = act.flatMap(p => openTasks(p));
+    const late = tasks.filter(t => (daysUntil(t.due) ?? 1) < 0).length;
+    const week = tasks.filter(t => { const n = daysUntil(t.due); return n != null && n >= 0 && n <= 7; }).length;
+    const blocked = act.filter(p => p.health === 'blocked').length;
+    const risk = act.filter(p => p.health === 'risk').length;
+    const fc = k => act.filter(p => p.focus === k).length;
+
+    const roleCounts = ROLES.map(r => ({ ...r, n: act.filter(p => (p.roleType || 'lead') === r.k).length })).filter(r => r.n);
+    const total = roleCounts.reduce((s, r) => s + r.n, 0);
+    const bar = total
+      ? roleCounts.map(r => `<span style="flex:${r.n};background:var(--r-${r.k})" title="${esc(r.l)} ${r.n}"></span>`).join('')
+      : '';
+    const keys = total
+      ? roleCounts.map(r => `<span class="k"><span class="dot" style="background:var(--r-${r.k})"></span>${esc(r.l)} <b>${r.n}</b></span>`).join('')
+      : `<span class="k" style="color:var(--faint)">添加项目后，这里会显示你在各项目里扮演的角色分布</span>`;
+
+    $('#summary').innerHTML = `
+      <div class="sum-stats">
+        <div class="stat"><span class="l">进行中项目</span><span class="n">${act.length}</span><span class="sub">主攻 ${fc('main')} · 维持 ${fc('keep')} · 观望 ${fc('watch')}</span></div>
+        <div class="stat"><span class="l">待办</span><span class="n">${tasks.length}</span><span class="sub">7 天内到期 ${week}</span></div>
+        <div class="stat ${late ? 'alert' : ''}"><span class="l">逾期</span><span class="n">${late}</span><span class="sub">${late ? '先处理这些' : '没有逾期'}</span></div>
+        <div class="stat ${blocked ? 'alert' : ''}"><span class="l">卡住的项目</span><span class="n">${blocked}</span><span class="sub">有风险 ${risk}</span></div>
+      </div>
+      <div class="roles">
+        <h2>我的定位分布</h2>
+        ${total ? `<div class="rolebar" role="img" aria-label="${esc(roleCounts.map(r => r.l + ' ' + r.n + ' 个').join('，'))}">${bar}</div>` : ''}
+        <div class="rolekeys">${keys}</div>
+      </div>`;
+  }
+
+  /* ---------- render: project cards ---------- */
+  function stageBlock(p) {
+    const idx = STAGES.findIndex(s => s.k === p.stage);
+    const off = byK(OFF_STAGES, p.stage);
+    const cells = STAGES.map((s, i) => `<li class="${idx < 0 ? '' : i < idx ? 'past' : i === idx ? 'now' : ''}"></li>`).join('');
+    const labels = STAGES.map((s, i) => `<span class="${i === idx ? 'now' : ''}">${s.l}</span>`).join('');
+    const note = p.stageNote ? `<p class="stage-note">${off ? `<span class="off-tag">${off.l}</span>` : ''}${esc(p.stageNote)}</p>`
+      : off ? `<p class="stage-note"><span class="off-tag">${off.l}</span></p>` : '';
+    return `<div class="stage">
+      <ol class="track ${off ? 'off' : ''}" aria-label="阶段：${esc((byK(ALL_STAGES, p.stage) || STAGES[0]).l)}">${cells}</ol>
+      <div class="track-labels" aria-hidden="true">${labels}</div>
+      ${note}
+    </div>`;
+  }
+  function msBlock(p) {
+    const ms = p.milestone || {};
+    if (!ms.title && !ms.date) return '';
+    const n = daysUntil(ms.date);
+    let d = '', c = '';
+    if (n != null) {
+      if (n < 0) { d = `${md(ms.date)} · 已过 ${-n} 天`; c = 'late'; }
+      else if (n === 0) { d = `${md(ms.date)} · 就是今天`; c = 'soon'; }
+      else { d = `${md(ms.date)} · 还有 ${n} 天`; c = n <= 14 ? 'soon' : ''; }
+    }
+    return `<div class="ms"><span class="ms-t"><small>下一个节点</small>${esc(ms.title || '未命名节点')}</span>${d ? `<span class="ms-d mono ${c}">${d}</span>` : ''}</div>`;
+  }
+  function taskRow(p, t, cls) {
+    const di = dueInfo(t.due);
+    const id = `c-${p.id}-${t.id}`;
+    return `<li class="${cls}">
+      <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${t.done ? 'checked' : ''} ${state.canWrite ? '' : 'disabled'}>
+      <label for="${esc(id)}">${esc(t.text)}</label>
+      ${di ? `<span class="due ${di.c}">${di.t}</span>` : '<span></span>'}
+    </li>`;
+  }
+  function card(p) {
+    const role = byK(ROLES, p.roleType) || ROLES[0];
+    const health = byK(HEALTH, p.health) || HEALTH[0];
+    const focus = byK(FOCUS, p.focus);
+    const open = openTasks(p).sort((a, b) => taskSortKey(a) - taskSortKey(b));
+    const doneN = (p.tasks || []).length - open.length;
+    const shown = open.slice(0, 3);
+    const links = (p.links || []).filter(l => /^https?:\/\//i.test(l.url || '')).slice(0, 3)
+      .map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || '链接')}</a>`).join('');
+    const upd = p.updatedAt ? md(String(p.updatedAt).slice(0, 10)) : '';
+    return `<article class="card ${p.stage === 'done' ? 'is-done' : ''} ${p.stage === 'paused' ? 'is-paused' : ''}">
+      <div class="card-h">
+        <div class="card-title">
+          <button class="pname" type="button" data-edit="${esc(p.id)}">${esc(p.name || '未命名项目')}</button>
+          <span class="pill h-${health.k}">${health.l}</span>
+        </div>
+        ${p.tagline ? `<p class="tagline">${esc(p.tagline)}</p>` : ''}
+      </div>
+      <div class="role role-${role.k}">
+        <div class="role-top"><span class="role-type">${role.l}</span><span class="role-name">${esc(p.role || role.d)}</span></div>
+        ${p.roleNote ? `<p class="role-note">${esc(p.roleNote)}</p>` : ''}
+      </div>
+      ${stageBlock(p)}
+      ${msBlock(p)}
+      ${open.length
+        ? `<ul class="tasks">${shown.map(t => taskRow(p, t, 'task')).join('')}</ul>${open.length > 3 ? `<span class="more">还有 ${open.length - 3} 条待办</span>` : ''}`
+        : `<p class="no-tasks">${(p.tasks || []).length ? '待办全部完成' : '还没有待办'}</p>`}
+      <div class="card-f">
+        <span>${focus ? focus.l + ' · ' : ''}${doneN}/${(p.tasks || []).length} 已完成${upd ? ' · ' + upd + '更新' : ''}</span>
+        <span class="links">${links}${state.canWrite ? `<button class="linkbtn" type="button" data-edit="${esc(p.id)}">编辑</button>` : ''}</span>
+      </div>
+    </article>`;
+  }
+  function renderProjects() {
+    const host = $('#projects');
+    if (state.status === 'loading') {
+      host.innerHTML = `<div class="empty"><h3>正在载入项目…</h3><p>项目数据保存在这个页面的云端存储里，几秒内就会出现。</p></div>`;
+      return;
+    }
+    if (state.status === 'none' || state.status === 'error') {
+      host.innerHTML = `<div class="empty"><h3>暂时连不上项目数据</h3><p>请在 claude.ai 中登录后打开这个页面。项目和待办都存在云端，换设备打开也能看到。</p></div>`;
+      return;
+    }
+    const list = sortProjects(state.projects.filter(p => state.showDone || p.stage !== 'done'));
+    if (!list.length) {
+      const hidden = state.projects.length - list.length;
+      host.innerHTML = `<div class="empty"><h3>${hidden ? '没有进行中的项目' : '还没有项目'}</h3>
+        <p>${hidden ? `有 ${hidden} 个已结束的项目被隐藏了，勾选「显示已结束的项目」可以看到。` : '每个项目记下它现在的阶段、你在里面的定位（主导、合伙、顾问……）和接下来要做的事。'}</p>
+        ${state.canWrite ? '<button class="btn primary" type="button" data-new>＋ 新建第一个项目</button>' : ''}</div>`;
+      return;
+    }
+    let groups;
+    if (state.groupBy === 'stage') groups = ALL_STAGES.map(s => ({ l: s.l, hint: '', items: list.filter(p => (p.stage || 'idea') === s.k) }));
+    else if (state.groupBy === 'role') groups = ROLES.map(r => ({ l: r.l, hint: r.d, items: list.filter(p => (p.roleType || 'lead') === r.k) }));
+    else if (state.groupBy === 'focus') groups = FOCUS.map(f => ({ l: f.l, hint: f.d, items: list.filter(p => p.focus === f.k) }))
+      .concat([{ l: '未设置投入度', hint: '', items: list.filter(p => !byK(FOCUS, p.focus)) }]);
+    else groups = [{ l: '', hint: '', items: list }];
+    host.innerHTML = groups.filter(g => g.items.length).map(g => `
+      <section class="group">
+        ${g.l ? `<div class="group-h"><h3>${g.l}</h3><span class="cnt">${g.items.length}</span>${g.hint ? `<span class="hint">${g.hint}</span>` : ''}</div>` : ''}
+        <div class="cards">${g.items.map(card).join('')}</div>
+      </section>`).join('');
+  }
+
+  /* ---------- render: next-up list ---------- */
+  function renderNext() {
+    const listEl = $('#next-list');
+    const act = sortProjects(state.projects.filter(p => isActive(p) && p.stage !== 'paused'));
+    const rows = act.flatMap(p => openTasks(p).map(t => ({ p, t })));
+    rows.sort((a, b) => taskSortKey(a.t) - taskSortKey(b.t) || focusRank(a.p.focus) - focusRank(b.p.focus));
+    $('#next-cnt').textContent = rows.length ? `${rows.length} 条` : '';
+    if (state.status !== 'ready') { listEl.innerHTML = `<li class="next-empty">载入后显示所有项目的待办，按截止日期排好。</li>`; }
+    else if (!rows.length) { listEl.innerHTML = `<li class="next-empty">没有待办。在项目里或下方加一条。</li>`; }
+    else {
+      const limit = state.showAllNext ? rows.length : 10;
+      const secs = [
+        { l: '逾期', f: r => (daysUntil(r.t.due) ?? 1) < 0 },
+        { l: '7 天内', f: r => { const n = daysUntil(r.t.due); return n != null && n >= 0 && n <= 7; } },
+        { l: '之后', f: r => { const n = daysUntil(r.t.due); return n != null && n > 7; } },
+        { l: '没定日期', f: r => daysUntil(r.t.due) == null },
+      ];
+      let out = '', count = 0;
+      for (const s of secs) {
+        const items = rows.filter(s.f);
+        if (!items.length || count >= limit) continue;
+        out += `<li class="sec">${s.l}</li>`;
+        for (const { p, t } of items) {
+          if (count >= limit) break;
+          count++;
+          const di = dueInfo(t.due);
+          const role = byK(ROLES, p.roleType) || ROLES[0];
+          const id = `n-${p.id}-${t.id}`;
+          out += `<li class="todo">
+            <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${state.canWrite ? '' : 'disabled'}>
+            <div><label for="${esc(id)}">${esc(t.text)}</label>
+              <div class="meta"><span class="tproj role-${role.k}">${esc(p.name || '未命名')}</span>${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div>
+            </div>
+          </li>`;
+        }
+      }
+      if (rows.length > 10) out += `<li><button class="showall" type="button" id="showall">${state.showAllNext ? '收起' : `显示全部 ${rows.length} 条`}</button></li>`;
+      listEl.innerHTML = out;
+    }
+    // quick-add project picker, keeping the current choice
+    const sel = $('#q-proj');
+    const prev = sel.value;
+    const opts = act.map(p => `<option value="${esc(p.id)}">${esc(p.name || '未命名项目')}</option>`).join('');
+    sel.innerHTML = opts || '<option value="">先新建一个项目</option>';
+    if (prev && act.some(p => p.id === prev)) sel.value = prev;
+    const disabled = !state.canWrite || state.status !== 'ready' || !act.length;
+    ['#q-text', '#q-proj', '#q-due', '#q-add'].forEach(s => { $(s).disabled = disabled; });
+  }
+
+  function render() {
+    renderSummary();
+    renderProjects();
+    renderNext();
+    document.querySelectorAll('#groupby button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.g === state.groupBy)));
+    $('#showdone').checked = state.showDone;
+    $('#btn-new').hidden = !state.canWrite || state.status !== 'ready';
+    $('#ro').hidden = state.canWrite || state.status !== 'ready';
+  }
+
+  /* ---------- writes ---------- */
+  const queues = {};
+  function queueWrite(id, fn) {
+    const run = (queues[id] || Promise.resolve()).catch(() => {}).then(fn);
+    queues[id] = run;
+    return run;
+  }
+  function errText(e) {
+    switch (e && e.code) {
+      case 'quota_exceeded': return '存储空间已满：删掉一些旧项目后再试。';
+      case 'invalid_argument': return '没能保存：你可能没有这个页面的编辑权限。';
+      case 'resource_exhausted': return '操作太快了，等几秒再试。';
+      case 'revoked': case 'not_granted': return '页面的数据权限已失效，请刷新页面。';
+      default: return '没能保存，请稍后再试。';
+    }
+  }
+  function onWriteError(e) {
+    if (e && e.code === 'invalid_argument' && state.canWrite) { state.canWrite = false; render(); }
+    toast(errText(e));
+  }
+  function setTask(pid, tid, done) {
+    const ref = DB.collection('projects').doc(pid);
+    return queueWrite(pid, () => {
+      const p = find(pid); if (!p) return;
+      const tasks = clone(p.tasks || []).map(t => t.id === tid ? { ...t, done, doneAt: done ? todayISO() : null } : t);
+      return ref.update({ tasks, updatedAt: nowISO() });
+    }).catch(onWriteError);
+  }
+  function addTask(pid, text, due) {
+    const ref = DB.collection('projects').doc(pid);
+    return queueWrite(pid, () => {
+      const p = find(pid); if (!p) return;
+      const tasks = clone(p.tasks || []);
+      tasks.push({ id: rid(), text, done: false, due: due || null, createdAt: todayISO() });
+      return ref.update({ tasks, updatedAt: nowISO() });
+    });
+  }
+
+  /* ---------- toast ---------- */
+  let toastTimer = null;
+  function toast(msg, action) {
+    const el = $('#toast');
+    el.innerHTML = `<span>${esc(msg)}</span>${action ? `<button type="button">${esc(action.label)}</button>` : ''}`;
+    if (action) el.querySelector('button').onclick = () => { el.hidden = true; action.run(); };
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, action ? 6000 : 3500);
+  }
+
+  /* ---------- editor ---------- */
+  const dlg = $('#editor');
+  let draft = null, draftIsNew = false, delArmed = null;
+
+  function blankProject() {
+    return { name: '', tagline: '', stage: 'idea', stageNote: '', roleType: 'lead', role: '', roleNote: '',
+      focus: 'keep', health: 'ok', milestone: { title: '', date: '' }, tasks: [], links: [], notes: '' };
+  }
+  function chipGroup(name, list, val, extraCls) {
+    return `<div class="chips">${list.map(o => `
+      <label class="chip ${extraCls ? extraCls + ' role-' + o.k : ''}" ${o.d ? `title="${esc(o.d)}"` : ''}>
+        <input type="radio" name="${name}" id="${name}-${o.k}" value="${o.k}" ${o.k === val ? 'checked' : ''}><span>${o.l}</span>
+      </label>`).join('')}</div>`;
+  }
+  function edTaskRows() {
+    return draft.tasks.map(t => `
+      <li class="ed-task" data-tid="${esc(t.id)}">
+        <input type="checkbox" id="e-done-${esc(t.id)}" aria-label="已完成" ${t.done ? 'checked' : ''}>
+        <input class="field" type="text" id="e-text-${esc(t.id)}" value="${esc(t.text)}" placeholder="待办内容" maxlength="200">
+        <input class="field" type="date" id="e-due-${esc(t.id)}" value="${esc(t.due || '')}" aria-label="截止日期">
+        <button class="x" type="button" data-rm="${esc(t.id)}" aria-label="删除这条">×</button>
+      </li>`).join('');
+  }
+  function renderEditor() {
+    const d = draft;
+    $('#ed-title').textContent = draftIsNew ? '新建项目' : '编辑项目';
+    $('#ed-del').hidden = draftIsNew;
+    resetDel();
+    $('#ed-body').innerHTML = `
+      <div class="row2">
+        <label class="lf"><span class="fl">项目名称</span><input class="field" id="f-name" type="text" value="${esc(d.name)}" maxlength="60" placeholder="例如：1999 培育钻"></label>
+        <label class="lf"><span class="fl">一句话说明</span><input class="field" id="f-tagline" type="text" value="${esc(d.tagline)}" maxlength="120" placeholder="这个项目是做什么的"></label>
+      </div>
+
+      <fieldset class="fs"><legend>现在处于哪个阶段</legend>
+        ${chipGroup('f-stage', ALL_STAGES, d.stage)}
+        <input class="field" id="f-stageNote" type="text" value="${esc(d.stageNote)}" maxlength="160" placeholder="阶段补充，例如：独立站已上线 16 款，准备软启动">
+      </fieldset>
+
+      <fieldset class="fs"><legend>我在这个项目里的定位</legend>
+        ${chipGroup('f-roleType', ROLES, d.roleType, 'role-chip')}
+        <div class="row2">
+          <label class="lf"><span class="fl">角色名称</span><input class="field" id="f-role" type="text" value="${esc(d.role)}" maxlength="60" placeholder="例如：创始人 · 主理人"></label>
+          <label class="lf"><span class="fl">我负责什么</span><input class="field" id="f-roleNote" type="text" value="${esc(d.roleNote)}" maxlength="200" placeholder="例如：品牌、销售、亲自出镜"></label>
+        </div>
+      </fieldset>
+
+      <div class="row2">
+        <fieldset class="fs"><legend>投入度</legend>${chipGroup('f-focus', FOCUS, d.focus)}</fieldset>
+        <fieldset class="fs"><legend>状态</legend>${chipGroup('f-health', HEALTH, d.health)}</fieldset>
+      </div>
+
+      <fieldset class="fs"><legend>下一个节点</legend>
+        <div class="row2">
+          <input class="field" id="f-ms-title" type="text" value="${esc((d.milestone || {}).title)}" maxlength="80" placeholder="例如：圣诞季首销">
+          <input class="field" id="f-ms-date" type="date" value="${esc((d.milestone || {}).date || '')}" aria-label="节点日期">
+        </div>
+      </fieldset>
+
+      <fieldset class="fs"><legend>待办</legend>
+        <ul class="ed-tasks" id="ed-tasks">${edTaskRows()}</ul>
+        <div><button class="btn" type="button" id="ed-addtask">＋ 加一条待办</button></div>
+      </fieldset>
+
+      <label class="lf"><span class="fl">链接（每行一个：名称 | 网址）</span>
+        <textarea class="field" id="f-links" rows="2" placeholder="Shopify 后台 | https://admin.shopify.com/...">${esc((d.links || []).map(l => (l.label || '') + ' | ' + (l.url || '')).join('\n'))}</textarea>
+      </label>
+      <label class="lf"><span class="fl">备注</span>
+        <textarea class="field" id="f-notes" rows="3" placeholder="合作方、关键决定、要记住的事">${esc(d.notes)}</textarea>
+      </label>
+      <p class="ed-err" id="ed-err" hidden></p>`;
+  }
+  function syncTasks() {
+    draft.tasks = draft.tasks.map(t => ({
+      ...t,
+      done: $('#e-done-' + CSS.escape(t.id))?.checked ?? t.done,
+      text: ($('#e-text-' + CSS.escape(t.id))?.value ?? t.text).trim(),
+      due: $('#e-due-' + CSS.escape(t.id))?.value || null,
+    }));
+  }
+  function readRadio(name, fallback) { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : fallback; }
+  function syncDraft() {
+    syncTasks();
+    draft.name = $('#f-name').value.trim();
+    draft.tagline = $('#f-tagline').value.trim();
+    draft.stage = readRadio('f-stage', 'idea');
+    draft.stageNote = $('#f-stageNote').value.trim();
+    draft.roleType = readRadio('f-roleType', 'lead');
+    draft.role = $('#f-role').value.trim();
+    draft.roleNote = $('#f-roleNote').value.trim();
+    draft.focus = readRadio('f-focus', 'keep');
+    draft.health = readRadio('f-health', 'ok');
+    draft.milestone = { title: $('#f-ms-title').value.trim(), date: $('#f-ms-date').value || '' };
+    draft.links = $('#f-links').value.split('\n').map(line => {
+      const i = line.lastIndexOf('|');
+      const label = (i >= 0 ? line.slice(0, i) : '').trim();
+      const url = (i >= 0 ? line.slice(i + 1) : line).trim();
+      return url ? { label: label || '链接', url } : null;
+    }).filter(Boolean);
+    draft.notes = $('#f-notes').value.trim();
+    draft.tasks = draft.tasks.filter(t => t.text);
+  }
+  function openEditor(id) {
+    const p = id ? find(id) : null;
+    draftIsNew = !p;
+    draft = p ? Object.assign(blankProject(), clone(p)) : blankProject();
+    if (!Array.isArray(draft.tasks)) draft.tasks = [];
+    renderEditor();
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    setTimeout(() => { if (draftIsNew) $('#f-name')?.focus(); }, 30);
+  }
+  function closeEditor() { if (dlg.open) dlg.close(); draft = null; }
+  function resetDel() { clearTimeout(delArmed); delArmed = null; const b = $('#ed-del'); b.classList.remove('armed'); b.textContent = '删除项目'; }
+  function showEdErr(msg) { const el = $('#ed-err'); el.textContent = msg; el.hidden = !msg; }
+
+  $('#ed-body').addEventListener('click', e => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { syncTasks(); draft.tasks = draft.tasks.filter(t => t.id !== rm.dataset.rm); $('#ed-tasks').innerHTML = edTaskRows(); return; }
+    if (e.target.closest('#ed-addtask')) {
+      syncTasks();
+      const t = { id: rid(), text: '', done: false, due: null, createdAt: todayISO() };
+      draft.tasks.push(t);
+      $('#ed-tasks').innerHTML = edTaskRows();
+      $('#e-text-' + CSS.escape(t.id))?.focus();
+    }
+  });
+  $('#ed-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!draft || !DB) return;
+    syncDraft();
+    if (!draft.name) { showEdErr('给项目起个名字再保存。'); $('#f-name').focus(); return; }
+    const { id, ...data } = draft;
+    data.updatedAt = nowISO();
+    if (draftIsNew) data.createdAt = data.updatedAt;
+    const ref = draftIsNew ? DB.collection('projects').doc() : DB.collection('projects').doc(id);
+    const btn = $('#ed-save');
+    btn.disabled = true; btn.textContent = '保存中…';
+    try {
+      await queueWrite(ref.id, () => ref.set(data));
+      closeEditor();
+      toast(draftIsNew ? '项目已创建' : '已保存');
+    } catch (err) {
+      showEdErr(errText(err));
+    } finally {
+      btn.disabled = false; btn.textContent = '保存';
+    }
+  });
+  $('#ed-del').addEventListener('click', async () => {
+    const b = $('#ed-del');
+    if (!delArmed) {
+      b.classList.add('armed'); b.textContent = '再点一次确认删除';
+      delArmed = setTimeout(resetDel, 4000);
+      return;
+    }
+    resetDel();
+    const id = draft && draft.id; if (!id) return;
+    const name = draft.name;
+    try {
+      await queueWrite(id, () => DB.collection('projects').doc(id).delete());
+      closeEditor();
+      toast(`已删除「${name || '未命名项目'}」`);
+    } catch (err) { showEdErr(errText(err)); }
+  });
+  dlg.addEventListener('click', e => {
+    if (e.target.closest('[data-close]')) { closeEditor(); return; }
+    if (e.target === dlg) closeEditor();   // backdrop click
+  });
+  dlg.addEventListener('close', () => { draft = null; });
+
+  /* ---------- page events ---------- */
+  document.addEventListener('click', e => {
+    const ed = e.target.closest('[data-edit]');
+    if (ed && state.canWrite) { openEditor(ed.dataset.edit); return; }
+    if (e.target.closest('#btn-new, [data-new]')) { openEditor(null); return; }
+    const g = e.target.closest('#groupby button');
+    if (g) { state.groupBy = g.dataset.g; local.set('groupBy', state.groupBy); render(); return; }
+    if (e.target.closest('#showall')) { state.showAllNext = !state.showAllNext; renderNext(); }
+  });
+  document.addEventListener('change', e => {
+    const cb = e.target.closest('input[type="checkbox"][data-pid]');
+    if (cb) {
+      const { pid, tid } = cb.dataset;
+      const done = cb.checked;
+      setTask(pid, tid, done);
+      if (done) {
+        const t = (find(pid)?.tasks || []).find(x => x.id === tid);
+        toast(`已完成：${t ? t.text : '待办'}`, { label: '撤销', run: () => setTask(pid, tid, false) });
+      }
+      return;
+    }
+    if (e.target.id === 'showdone') { state.showDone = e.target.checked; local.set('showDone', state.showDone); render(); }
+  });
+  $('#quick').addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = $('#q-text').value.trim();
+    const pid = $('#q-proj').value;
+    if (!text || !pid || !DB) { $('#q-text').focus(); return; }
+    $('#q-add').disabled = true;
+    try {
+      await addTask(pid, text, $('#q-due').value);
+      $('#q-text').value = ''; $('#q-due').value = '';
+      toast('已添加');
+    } catch (err) { onWriteError(err); }
+    finally { $('#q-add').disabled = !state.canWrite; $('#q-text').focus(); }
+  });
+
+  /* ---------- boot ---------- */
+  render();
+  (async () => {
+    if (!window.claude || typeof window.claude.use !== 'function') { state.status = 'none'; render(); return; }
+    const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    if (!db) { state.status = 'none'; render(); return; }
+    DB = db;
+    if (user) { try { if ((await user.can('data.write')) === false) state.canWrite = false; } catch {} }
+    db.collection('projects').onSnapshot(snap => {
+      state.projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      state.status = 'ready';
+      render();
+    }, err => {
+      state.status = 'error';
+      render();
+      toast(errText(err));
+    });
+  })();
+})();
+</script>
