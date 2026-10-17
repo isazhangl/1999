@@ -260,8 +260,8 @@ button.ttl:hover { color: var(--accent); }
 .ad-co b { color: var(--ink); font-family: var(--f-display); font-size: 18px; margin-right: 6px; }
 .ad-upd { color: var(--faint); font-size: 12px; margin-left: auto; }
 .ads-body { display: grid; gap: 16px; min-width: 0; }
-.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.kpi { box-shadow: 1px 0 0 var(--line), 0 1px 0 var(--line); padding: 14px 16px; display: grid; gap: 2px; align-content: start; min-width: 0; }
 .kpi .l { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
 .kpi .n { font-family: var(--f-mono); font-size: 22px; font-weight: 500; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .kpi .sub { color: var(--faint); font-size: 12px; }
@@ -465,7 +465,6 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   .next-list { max-height: none; }
   .summary { grid-template-columns: minmax(0, 1fr); }
   .roles { border-left: 0; border-top: 1px solid var(--line); }
-  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
   .top h1 { font-size: 24px; }
@@ -689,7 +688,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     showDone: local.get('showDone', false),
     showAllNext: false,
     plan: { pid: local.get('planPid', null), form: null, dirty: false },
-    ads: { pid: local.get('adsPid', null), range: local.get('adsRange', 7), byAcct: {} },
+    ads: { pid: local.get('adsPid', null), range: local.get('adsRange', 7), metric: local.get('adsMetric', 'visits'), byAcct: {} },
   };
   if (!VIEWS.includes(state.view)) state.view = 'today';
   let DB = null;
@@ -1259,13 +1258,16 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 
   /* ---------- Meta 投放: read through the viewer's Windsor.ai connector ---------- */
   const ADS_SERVER = 'Windsor.ai';
-  const AD_FIELDS = ['date', 'campaign', 'campaign_status', 'spend', 'impressions', 'clicks', 'link_clicks', 'actions_omni_purchase', 'action_values_omni_purchase', 'account_currency'];
+  const AD_FIELDS = ['date', 'campaign', 'campaign_objective', 'campaign_status', 'spend', 'impressions', 'clicks', 'link_clicks',
+    'instagram_profile_visits', 'actions_post_engagement', 'actions_onsite_conversion_post_save',
+    'actions_omni_purchase', 'action_values_omni_purchase', 'account_currency'];
   const AD_DENIALS = ['needs_reauth', 'server_not_connected', 'selection_required', 'blocked_by_policy', 'approval_required', 'not_in_manifest', 'not_granted', 'capability_disabled', 'capability_removed', 'no_mcp'];
+  const OBJECTIVES = { OUTCOME_TRAFFIC: '流量', OUTCOME_AWARENESS: '知名度', OUTCOME_ENGAGEMENT: '互动', OUTCOME_SALES: '销售', OUTCOME_LEADS: '潜在客户', OUTCOME_APP_PROMOTION: '应用推广' };
   let mcpPromise = null;
   const getMcp = () => mcpPromise || (mcpPromise = (window.claude && typeof window.claude.use === 'function')
     ? window.claude.use('mcp').catch(() => null) : Promise.resolve(null));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const adState = acct => state.ads.byAcct[acct] || (state.ads.byAcct[acct] = { status: 'idle', rows: null, fetchedAt: null, err: null });
+  const adState = acct => state.ads.byAcct[acct] || (state.ads.byAcct[acct] = { status: 'idle', rows: null, fetchedAt: null, err: null, reach: {} });
   const adCompanies = () => sortProjects(state.projects.filter(p => isActive(p) && p.metaAccount));
   const n0 = v => Number(v) || 0;
   const ratio = (a, b) => b ? a / b : null;
@@ -1280,13 +1282,16 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   const pctf = v => v == null ? '—' : (v * 100).toFixed(2) + '%';
   const roasf = v => v == null ? '—' : v.toFixed(2);
   function adAgg(rows) {
-    const a = { spend: 0, impr: 0, clicks: 0, link: 0, purch: 0, value: 0 };
+    const a = { spend: 0, impr: 0, clicks: 0, link: 0, visits: 0, eng: 0, saves: 0, purch: 0, value: 0 };
     rows.forEach(r => {
-      a.spend += n0(r.spend); a.impr += n0(r.impressions); a.clicks += n0(r.clicks);
-      a.link += n0(r.link_clicks); a.purch += n0(r.actions_omni_purchase); a.value += n0(r.action_values_omni_purchase);
+      a.spend += n0(r.spend); a.impr += n0(r.impressions); a.clicks += n0(r.clicks); a.link += n0(r.link_clicks);
+      a.visits += n0(r.instagram_profile_visits); a.eng += n0(r.actions_post_engagement); a.saves += n0(r.actions_onsite_conversion_post_save);
+      a.purch += n0(r.actions_omni_purchase); a.value += n0(r.action_values_omni_purchase);
     });
     return a;
   }
+  // purchases only matter once a sales campaign exists or Meta has recorded one
+  const adWantsSales = rows => rows.some(r => r.campaign_objective === 'OUTCOME_SALES' || n0(r.actions_omni_purchase) > 0);
   function adErrText(e) {
     switch (e && e.code) {
       case 'no_mcp': case 'not_granted': case 'capability_disabled': case 'capability_removed':
@@ -1303,14 +1308,8 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     }
   }
   function renderAdsViews() { renderAds(); renderPlan(false); }
-  async function fetchAds(acct, refresh) {
-    const st = adState(acct);
-    if (st.status === 'loading' || st.status === 'pending') return;
-    st.status = 'loading'; renderAdsViews();
-    const mcp = await getMcp();
-    if (!mcp) { st.status = 'error'; st.err = { code: 'no_mcp' }; renderAdsViews(); return; }
-    // one pull covers every range on the page: last 30 days, one row per day and campaign
-    const input = { connector: 'facebook', accounts: [acct], date_preset: 'last_30d', fields: AD_FIELDS };
+  // One Windsor pull; follows "pending" reports and retries a retryable failure once.
+  async function pullWindsor(mcp, input, refresh, onPending) {
     let first = true, polls = 0, retried = false;
     for (;;) {
       try {
@@ -1319,47 +1318,80 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
         const res = await mcp.callTool(ADS_SERVER, 'get_data', input, opts);
         const pl = res && res.payload;
         if (pl && pl.status === 'pending' && polls < 20) {
-          polls++; st.status = 'pending'; renderAdsViews();
+          polls++; if (onPending) onPending();
           await sleep(Math.min(60, Math.max(5, Number(pl.poll_after_seconds) || 10)) * 1000);
           continue;
         }
         if (!pl || !Array.isArray(pl.data)) throw { code: 'bad_shape' };
-        st.rows = pl.data; st.fetchedAt = res.cache ? res.cache.storedAt : Date.now(); st.err = null; st.status = 'ready';
-        break;
+        return { rows: pl.data, at: res.cache ? res.cache.storedAt : Date.now() };
       } catch (e) {
         if (e && e.retryable && !retried) { retried = true; await sleep(Math.min(60000, e.retryAfterMs || 1500) + Math.random() * 1500); continue; }
-        st.err = e && e.code ? e : { code: 'upstream_error' };
-        if (AD_DENIALS.includes(st.err.code)) st.rows = null;
-        st.status = st.rows ? 'stale' : 'error';
-        break;
+        throw (e && e.code ? e : { code: 'upstream_error' });
       }
+    }
+  }
+  async function fetchAds(acct, refresh) {
+    const st = adState(acct);
+    if (st.status === 'loading' || st.status === 'pending') return;
+    st.status = 'loading'; renderAdsViews();
+    if (refresh) st.reach = {};
+    const mcp = await getMcp();
+    if (!mcp) { st.status = 'error'; st.err = { code: 'no_mcp' }; renderAdsViews(); return; }
+    try {
+      // one pull covers every range: last 30 days, one row per day and campaign
+      const r = await pullWindsor(mcp, { connector: 'facebook', accounts: [acct], date_preset: 'last_30d', fields: AD_FIELDS }, refresh,
+        () => { st.status = 'pending'; renderAdsViews(); });
+      st.rows = r.rows; st.fetchedAt = r.at; st.err = null; st.status = 'ready';
+    } catch (e) {
+      st.err = e;
+      if (AD_DENIALS.includes(e.code)) st.rows = null;
+      st.status = st.rows ? 'stale' : 'error';
     }
     renderAdsViews();
   }
+  // Reach counts people, so it cannot be summed across days: read it per range for the whole account.
+  async function fetchReach(acct, range, refresh) {
+    const st = adState(acct);
+    if (st.reach[range] && st.reach[range].status === 'loading') return;
+    st.reach[range] = { status: 'loading' };
+    const mcp = await getMcp();
+    if (!mcp) { st.reach[range] = { status: 'error' }; renderAds(); return; }
+    try {
+      const r = await pullWindsor(mcp, { connector: 'facebook', accounts: [acct], date_preset: `last_${range}d`, fields: ['reach', 'frequency'] }, refresh);
+      const row = r.rows[0] || {};
+      st.reach[range] = { status: 'ready', reach: n0(row.reach), frequency: n0(row.frequency) };
+    } catch (e) {
+      st.reach[range] = { status: 'error', err: e };
+    }
+    renderAds();
+  }
 
   let adDays = [], adLastW = 0;
+  const AD_METRICS = { visits: { l: '主页访问', money: false }, spend: { l: '花费', money: true } };
   function niceCeil(v) {
     const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p;
     return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
   }
   function drawAdChart() {
     const el = $('#ad-chart'); if (!el) return;
-    const days = adDays, cur = el.dataset.cur;
+    const days = adDays, cur = el.dataset.cur, key = AD_METRICS[state.ads.metric] ? state.ads.metric : 'visits', isMoney = AD_METRICS[key].money;
     const W = Math.max(260, el.clientWidth || 600), H = 190, L = 54, R = 6, T = 10, B = 24;
     adLastW = W;
     const iw = W - L - R, ih = H - T - B, base = T + ih;
-    const top = niceCeil(Math.max(1, ...days.map(d => d.spend)));
+    const top = niceCeil(Math.max(1, ...days.map(d => d[key])));
     const y = v => base - (v / top) * ih;
     const slot = iw / days.length, bw = Math.max(3, Math.min(30, slot - 2));
     const every = Math.max(1, Math.ceil(days.length / Math.max(2, Math.floor(iw / 58))));
-    const yLab = v => (cur && cur !== 'BRL' ? cur + ' ' : 'R$') + v.toLocaleString('zh-CN', { maximumFractionDigits: v < 10 ? 1 : 0 });
-    let svg = `<svg width="${W}" height="${H}" role="img" aria-label="每天花费柱状图，明细见下方表格">`;
+    const yLab = v => isMoney
+      ? (cur && cur !== 'BRL' ? cur + ' ' : 'R$') + v.toLocaleString('zh-CN', { maximumFractionDigits: v < 10 ? 1 : 0 })
+      : v.toLocaleString('zh-CN', { maximumFractionDigits: v < 10 ? 1 : 0 });
+    let svg = `<svg width="${W}" height="${H}" role="img" aria-label="每天${AD_METRICS[key].l}柱状图，明细见下方表格">`;
     [0, top / 2, top].forEach(v => {
       if (v) svg += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"></line>`;
       svg += `<text class="yl" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${yLab(v)}</text>`;
     });
     days.forEach((d, i) => {
-      const cx = L + slot * i + slot / 2, x = cx - bw / 2, h = (d.spend / top) * ih;
+      const cx = L + slot * i + slot / 2, x = cx - bw / 2, h = (d[key] / top) * ih;
       if (h > 0) {
         const r = Math.min(4, h, bw / 2), yt = base - h;
         svg += `<path class="bm" data-i="${i}" d="M${x},${base}V${yt + r}Q${x},${yt} ${x + r},${yt}H${x + bw - r}Q${x + bw},${yt} ${x + bw},${yt + r}V${base}Z"></path>`;
@@ -1413,8 +1445,10 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       }
       return;
     }
+    if (!st.reach[range]) fetchReach(acct, range);
+    const rc = st.reach[range] || { status: 'loading' };
 
-    const rows = adInRange(st.rows, range), cur = adCur(st.rows), a = adAgg(rows);
+    const rows = adInRange(st.rows, range), cur = adCur(st.rows), a = adAgg(rows), sales = adWantsSales(rows);
     const byDay = {};
     rows.forEach(r => { const k = String(r.date); (byDay[k] = byDay[k] || []).push(r); });
     adDays = [];
@@ -1425,42 +1459,56 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     }
     const activeDays = adDays.filter(d => d.spend > 0).length;
     const camps = {};
-    rows.forEach(r => { const k = String(r.campaign || '未命名广告系列'); (camps[k] = camps[k] || { rows: [], status: r.campaign_status }).rows.push(r); if (String(r.date) >= (camps[k].last || '')) { camps[k].last = String(r.date); camps[k].status = r.campaign_status; } });
-    const campList = Object.entries(camps).map(([name, c]) => ({ name, status: c.status, ...adAgg(c.rows) })).sort((x, y) => y.spend - x.spend);
+    rows.forEach(r => {
+      const k = String(r.campaign || '未命名广告系列');
+      const c = camps[k] = camps[k] || { rows: [] };
+      c.rows.push(r);
+      if (String(r.date) >= (c.last || '')) { c.last = String(r.date); c.status = r.campaign_status; c.objective = r.campaign_objective; }
+    });
+    const campList = Object.entries(camps).map(([name, c]) => ({ name, status: c.status, objective: c.objective, ...adAgg(c.rows) })).sort((x, y) => y.spend - x.spend);
 
     const tiles = [
       { l: '花费', n: money(a.spend, cur), sub: activeDays ? `${activeDays} 天有投放 · 日均 ${money(a.spend / activeDays, cur)}` : '这段时间没有投放' },
+      rc.status === 'ready'
+        ? { l: '覆盖人数', n: intf(rc.reach), sub: `平均每人看到 ${rc.frequency.toFixed(2)} 次` }
+        : { l: '覆盖人数', n: '…', sub: rc.status === 'error' ? '这一项没读到，点「刷新」再试' : '正在读取' },
       { l: '展示', n: intf(a.impr), sub: `千次展示 ${money(ratio(a.spend, a.impr / 1000), cur)}` },
-      { l: '链接点击', n: intf(a.link), sub: `单次 ${money(ratio(a.spend, a.link), cur)}` },
+      { l: 'Instagram 主页访问', n: intf(a.visits), sub: `单次访问 ${money(ratio(a.spend, a.visits), cur)}` },
+      { l: '互动', n: intf(a.eng), sub: `其中收藏 ${intf(a.saves)}` },
       { l: '点击率', n: pctf(ratio(a.clicks, a.impr)), sub: '全部点击 ÷ 展示' },
+    ];
+    const salesTiles = sales ? [
       { l: '购买', n: intf(a.purch), sub: a.purch ? `每单 ${money(ratio(a.spend, a.purch), cur)}` : 'Meta 归因的购买' },
       { l: 'ROAS', n: roasf(ratio(a.value, a.spend)), sub: `购买金额 ${money(a.value, cur)}` },
-    ];
+    ] : [];
     const stale = st.status === 'stale' ? (() => { const m = adErrText(st.err); return `<div class="adnote err"><b>${esc(m.t)}</b><span>下面是上次读到的数据。${esc(m.d)}</span></div>`; })() : '';
-    const pixel = a.spend > 0 && a.purch === 0
-      ? `<div class="adnote"><b>花了 ${money(a.spend, cur)}，Meta 没有记录到任何购买</b><span>如果网站这段时间其实有订单，多半是 Shopify 里的 Meta 像素（Facebook & Instagram 应用）没装好，或没开购买事件。如果确实没有订单，就是广告带来的点击没有转化。</span></div>` : '';
+    const pixel = sales && a.spend > 0 && a.purch === 0
+      ? `<div class="adnote"><b>销售广告花了钱，但 Meta 没有记录到购买</b><span>检查 Shopify 里的 Meta 像素（Facebook &amp; Instagram 应用）是否装好、广告「追踪」里是否勾了这个数据集。</span></div>` : '';
+    const mk = AD_METRICS[state.ads.metric] ? state.ads.metric : 'visits';
+    const cols = sales ? 11 : 9;
 
     body.innerHTML = `
       ${stale}
-      <div class="kpis">${tiles.map(t => `<div class="kpi"><span class="l">${t.l}</span><span class="n">${t.n}</span><span class="sub">${t.sub}</span></div>`).join('')}</div>
+      <div class="kpis">${tiles.concat(salesTiles).map(t => `<div class="kpi"><span class="l">${t.l}</span><span class="n">${t.n}</span><span class="sub">${t.sub}</span></div>`).join('')}</div>
       ${pixel}
       <div class="chart-card">
-        <h3>每天花费<small>近 ${range} 天 · 鼠标移到柱子上看当天点击和购买</small></h3>
+        <h3>每天${AD_METRICS[mk].l}<small>近 ${range} 天 · 鼠标移到柱子上看当天明细</small>
+          <span class="seg" role="group" aria-label="图表数字" style="margin-left:auto">${Object.entries(AD_METRICS).map(([k, m]) => `<button type="button" data-admetric="${k}" aria-pressed="${k === mk}">${m.l}</button>`).join('')}</span></h3>
         <div class="chart" id="ad-chart" data-cur="${esc(cur)}"></div>
         <details class="days"><summary>看每天的明细表</summary>
-          <div class="tbl-wrap"><table class="adt"><thead><tr><th>日期</th><th>花费</th><th>展示</th><th>链接点击</th><th>购买</th></tr></thead>
-          <tbody>${adDays.slice().reverse().map(d => `<tr><td>${d.full}</td><td>${money(d.spend, cur)}</td><td>${intf(d.impr)}</td><td>${intf(d.link)}</td><td>${intf(d.purch)}</td></tr>`).join('')}</tbody></table></div>
+          <div class="tbl-wrap"><table class="adt"><thead><tr><th>日期</th><th>花费</th><th>展示</th><th>主页访问</th><th>互动</th>${sales ? '<th>购买</th>' : ''}</tr></thead>
+          <tbody>${adDays.slice().reverse().map(d => `<tr><td>${d.full}</td><td>${money(d.spend, cur)}</td><td>${intf(d.impr)}</td><td>${intf(d.visits)}</td><td>${intf(d.eng)}</td>${sales ? `<td>${intf(d.purch)}</td>` : ''}</tr>`).join('')}</tbody></table></div>
         </details>
       </div>
       <div class="chart-card">
         <h3>广告系列<small>近 ${range} 天 · 按花费排序</small></h3>
         <div class="tbl-wrap"><table class="adt">
-          <thead><tr><th>广告系列</th><th>状态</th><th>花费</th><th>展示</th><th>链接点击</th><th>点击率</th><th>单次点击</th><th>购买</th><th>ROAS</th></tr></thead>
-          <tbody>${campList.length ? campList.map(c => `<tr><td>${esc(c.name)}</td><td>${adStatusPill(c.status)}</td><td>${money(c.spend, cur)}</td><td>${intf(c.impr)}</td><td>${intf(c.link)}</td><td>${pctf(ratio(c.clicks, c.impr))}</td><td>${money(ratio(c.spend, c.link), cur)}</td><td>${intf(c.purch)}</td><td>${roasf(ratio(c.value, c.spend))}</td></tr>`).join('') : `<tr><td colspan="9">这段时间没有投放。</td></tr>`}</tbody>
-          ${campList.length > 1 ? `<tfoot><tr><td>合计</td><td></td><td>${money(a.spend, cur)}</td><td>${intf(a.impr)}</td><td>${intf(a.link)}</td><td>${pctf(ratio(a.clicks, a.impr))}</td><td>${money(ratio(a.spend, a.link), cur)}</td><td>${intf(a.purch)}</td><td>${roasf(ratio(a.value, a.spend))}</td></tr></tfoot>` : ''}
+          <thead><tr><th>广告系列</th><th>目标</th><th>状态</th><th>花费</th><th>展示</th><th>主页访问</th><th>单次访问</th><th>互动</th><th>点击率</th>${sales ? '<th>购买</th><th>ROAS</th>' : ''}</tr></thead>
+          <tbody>${campList.length ? campList.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(OBJECTIVES[c.objective] || c.objective || '')}</td><td>${adStatusPill(c.status)}</td><td>${money(c.spend, cur)}</td><td>${intf(c.impr)}</td><td>${intf(c.visits)}</td><td>${money(ratio(c.spend, c.visits), cur)}</td><td>${intf(c.eng)}</td><td>${pctf(ratio(c.clicks, c.impr))}</td>${sales ? `<td>${intf(c.purch)}</td><td>${roasf(ratio(c.value, c.spend))}</td>` : ''}</tr>`).join('') : `<tr><td colspan="${cols}">这段时间没有投放。</td></tr>`}</tbody>
+          ${campList.length > 1 ? `<tfoot><tr><td>合计</td><td></td><td></td><td>${money(a.spend, cur)}</td><td>${intf(a.impr)}</td><td>${intf(a.visits)}</td><td>${money(ratio(a.spend, a.visits), cur)}</td><td>${intf(a.eng)}</td><td>${pctf(ratio(a.clicks, a.impr))}</td>${sales ? `<td>${intf(a.purch)}</td><td>${roasf(ratio(a.value, a.spend))}</td>` : ''}</tr></tfoot>` : ''}
         </table></div>
       </div>
-      <p class="hint">数据来自 Windsor.ai 读取的 Meta Ads 报表，购买数和金额是 Meta 归因的结果，可能和 Shopify 里的实际订单不一样。</p>`;
+      <p class="hint">数据来自 Windsor.ai 读取的 Meta Ads 报表。主页访问是看了广告后点进 Instagram 主页的次数；涨了多少粉丝要在 Instagram 后台看。${sales ? '购买数和金额是 Meta 归因的结果，可能和 Shopify 里的实际订单不一样。' : ''}</p>`;
     drawAdChart();
   }
   function adsMini(p) {
@@ -1471,7 +1519,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       return `<div class="ads-mini"><span class="k">Meta 投放</span><br>${busy ? '正在读取…' : `<button class="linkbtn" type="button" data-adload="${esc(acct)}">读取近 7 天投放数据</button>`}</div>`;
     }
     const rows = adInRange(st.rows, 7), a = adAgg(rows), cur = adCur(st.rows);
-    return `<div class="ads-mini"><span class="k">Meta 投放 · 近 7 天</span><br>花费 ${money(a.spend, cur)} · 链接点击 ${intf(a.link)} · 购买 ${intf(a.purch)} · ROAS ${roasf(ratio(a.value, a.spend))}<br><button class="linkbtn" type="button" data-goads="${esc(p.id)}">看投放详情</button></div>`;
+    return `<div class="ads-mini"><span class="k">Meta 投放 · 近 7 天</span><br>花费 ${money(a.spend, cur)} · 主页访问 ${intf(a.visits)} · 单次 ${money(ratio(a.spend, a.visits), cur)}<br><button class="linkbtn" type="button" data-goads="${esc(p.id)}">看投放详情</button></div>`;
   }
   if (typeof ResizeObserver === 'function') {
     new ResizeObserver(() => { const el = $('#ad-chart'); if (el && el.clientWidth && Math.abs(el.clientWidth - adLastW) > 2) drawAdChart(); }).observe($('#view-ads'));
@@ -1483,7 +1531,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     if (!hit || !el.contains(hit)) { tip.hidden = true; el.querySelectorAll('.bm').forEach(b => b.classList.remove('dim')); return; }
     const d = adDays[+hit.dataset.i]; if (!d) return;
     const cur = el.dataset.cur;
-    tip.innerHTML = `<b>${esc(d.full)}</b><span>花费 ${money(d.spend, cur)}</span><span>链接点击 ${intf(d.link)}</span><span>购买 ${intf(d.purch)}</span>`;
+    tip.innerHTML = `<b>${esc(d.full)}</b><span>花费 ${money(d.spend, cur)}</span><span>主页访问 ${intf(d.visits)}${d.visits ? ` · 单次 ${money(d.spend / d.visits, cur)}` : ''}</span><span>互动 ${intf(d.eng)}</span>`;
     tip.hidden = false;
     const box = el.getBoundingClientRect();
     let x = e.clientX - box.left + 14;
@@ -1804,6 +1852,8 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     if (e.target.closest('#btn-new, [data-new]')) { openEditor(null); return; }
     const adl = e.target.closest('[data-adload]');
     if (adl) { fetchAds(adl.dataset.adload, !!adl.dataset.refresh); return; }
+    const adm = e.target.closest('[data-admetric]');
+    if (adm) { state.ads.metric = adm.dataset.admetric; local.set('adsMetric', state.ads.metric); renderAds(); return; }
     const adr = e.target.closest('[data-adrange]');
     if (adr) { state.ads.range = +adr.dataset.adrange; local.set('adsRange', state.ads.range); renderAds(); return; }
     const adc = e.target.closest('[data-adco]');
