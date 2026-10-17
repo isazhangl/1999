@@ -254,6 +254,44 @@ button.ttl:hover { color: var(--accent); }
 .side-facts { padding: 4px 16px 14px; display: grid; gap: 6px; font-size: 13px; }
 .side-facts .k { color: var(--faint); font-size: 12px; }
 
+/* ---------- ads view ---------- */
+.ads-top { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.ad-co { font-size: 13px; color: var(--muted); }
+.ad-co b { color: var(--ink); font-family: var(--f-display); font-size: 18px; margin-right: 6px; }
+.ad-upd { color: var(--faint); font-size: 12px; margin-left: auto; }
+.ads-body { display: grid; gap: 16px; min-width: 0; }
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.kpi { background: var(--surface); padding: 14px 16px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.kpi .l { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+.kpi .n { font-family: var(--f-mono); font-size: 22px; font-weight: 500; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .sub { color: var(--faint); font-size: 12px; }
+.adnote { background: var(--risk-soft); border-radius: 8px; padding: 10px 14px; font-size: 13px; display: grid; gap: 4px; justify-items: start; }
+.adnote b { color: var(--risk); }
+.adnote.err { background: var(--bad-soft); }
+.adnote.err b { color: var(--bad); }
+.adnote span { color: var(--ink); }
+.chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px 10px; display: grid; gap: 8px; min-width: 0; }
+.chart-card h3 { margin: 0; font-size: 14px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.chart-card h3 small { color: var(--faint); font-weight: 400; font-size: 12px; }
+.chart { position: relative; min-width: 0; }
+.chart svg { display: block; }
+.chart .gl { stroke: var(--line); stroke-width: 1; }
+.chart .base { stroke: var(--faint); stroke-width: 1; }
+.chart .yl, .chart .xl { fill: var(--faint); font-size: 11px; font-family: var(--f-mono); }
+.chart .bm { fill: var(--accent); }
+.chart .bm.dim { opacity: .4; }
+.chart .hit { fill: transparent; }
+.chart .tip { position: absolute; top: 6px; pointer-events: none; background: var(--ink); color: var(--bg); border-radius: 7px; padding: 7px 10px; font-size: 12px; display: grid; gap: 1px; white-space: nowrap; box-shadow: var(--shadow); z-index: 2; }
+.tbl-wrap { overflow-x: auto; }
+table.adt { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.adt th { font-weight: 500; color: var(--muted); font-size: 12px; }
+table.adt th, table.adt td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.adt th:first-child, table.adt td:first-child { text-align: left; white-space: normal; min-width: 130px; }
+table.adt tfoot td { font-weight: 700; border-bottom: 0; }
+details.days summary { cursor: pointer; color: var(--accent); font-size: 13px; padding: 4px 0; }
+.ads-mini { font-size: 13px; }
+.ads-mini .k { color: var(--faint); font-size: 12px; }
+
 /* ---------- summary (all view) ---------- */
 .summary {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
@@ -427,6 +465,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   .next-list { max-height: none; }
   .summary { grid-template-columns: minmax(0, 1fr); }
   .roles { border-left: 0; border-top: 1px solid var(--line); }
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) {
   .top h1 { font-size: 24px; }
@@ -451,6 +490,8 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   .obj-meta { grid-column: 1 / -1; justify-content: flex-start; }
   .init-h { grid-template-columns: auto minmax(0, 1fr) auto; }
   .init-h .due { grid-column: 2 / 3; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ad-upd { margin-left: 0; width: 100%; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .card { transition: border-color .15s ease; }
@@ -469,6 +510,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       <div class="tabs" id="tabs" role="group" aria-label="视图">
         <button type="button" data-view="today">今天</button>
         <button type="button" data-view="plan">规划</button>
+        <button type="button" data-view="ads">投放</button>
         <button type="button" data-view="all">全部公司</button>
       </div>
       <span class="badge-ro" id="ro" hidden>只读</span>
@@ -530,6 +572,12 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
         <div class="panel" id="pl-facts"></div>
       </aside>
     </div>
+  </section>
+
+  <!-- ===== 投放 ===== -->
+  <section class="view" id="view-ads" aria-label="Meta 投放" hidden>
+    <div class="ads-top" id="ad-top"></div>
+    <div class="ads-body" id="ad-body"></div>
   </section>
 
   <!-- ===== 全部公司 ===== -->
@@ -630,7 +678,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     set(k, v) { try { localStorage.setItem('hub:' + k, JSON.stringify(v)); } catch {} },
   };
 
-  const VIEWS = ['today', 'plan', 'all'];
+  const VIEWS = ['today', 'plan', 'ads', 'all'];
   const hashView = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : null;
   const state = {
     projects: [],
@@ -641,6 +689,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     showDone: local.get('showDone', false),
     showAllNext: false,
     plan: { pid: local.get('planPid', null), form: null, dirty: false },
+    ads: { pid: local.get('adsPid', null), range: local.get('adsRange', 7), byAcct: {} },
   };
   if (!VIEWS.includes(state.view)) state.view = 'today';
   let DB = null;
@@ -1016,6 +1065,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
         <div><span class="k">我的身份</span><br><span class="tproj role-${roleOf(p).k}">${esc(roleOf(p).l)}</span> ${esc(p.role || '')}</div>
         <div><span class="k">阶段</span><br>${esc((byK(ALL_STAGES, p.stage) || STAGES[0]).l)}${p.stageNote ? ' · ' + esc(p.stageNote) : ''}</div>
         ${ms.title || ms.date ? `<div><span class="k">下一个节点</span><br>${esc(ms.title || '')}${mi ? ` <span class="due ${mi.c}">${mi.t}</span>` : ''}</div>` : ''}
+        ${adsMini(p)}
       </div>`;
 
     const f = host.querySelector('form.inl');
@@ -1207,12 +1257,248 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     fillProjSelect($('#q-proj'), live, ['#q-text', '#q-proj', '#q-due', '#q-add']);
   }
 
+  /* ---------- Meta 投放: read through the viewer's Windsor.ai connector ---------- */
+  const ADS_SERVER = 'Windsor.ai';
+  const AD_FIELDS = ['date', 'campaign', 'campaign_status', 'spend', 'impressions', 'clicks', 'link_clicks', 'actions_omni_purchase', 'action_values_omni_purchase', 'account_currency'];
+  const AD_DENIALS = ['needs_reauth', 'server_not_connected', 'selection_required', 'blocked_by_policy', 'approval_required', 'not_in_manifest', 'not_granted', 'capability_disabled', 'capability_removed', 'no_mcp'];
+  let mcpPromise = null;
+  const getMcp = () => mcpPromise || (mcpPromise = (window.claude && typeof window.claude.use === 'function')
+    ? window.claude.use('mcp').catch(() => null) : Promise.resolve(null));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const adState = acct => state.ads.byAcct[acct] || (state.ads.byAcct[acct] = { status: 'idle', rows: null, fetchedAt: null, err: null });
+  const adCompanies = () => sortProjects(state.projects.filter(p => isActive(p) && p.metaAccount));
+  const n0 = v => Number(v) || 0;
+  const ratio = (a, b) => b ? a / b : null;
+  const adCut = range => { const d = new Date(); d.setDate(d.getDate() - range); return isoOf(d); };
+  const adInRange = (rows, range) => rows.filter(r => String(r.date) >= adCut(range) && String(r.date) < todayISO());
+  const adCur = rows => (rows.find(r => r.account_currency) || {}).account_currency || 'BRL';
+  function money(v, cur) {
+    if (v == null || !isFinite(v)) return '—';
+    return (cur && cur !== 'BRL' ? cur + ' ' : 'R$') + v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  const intf = v => Math.round(v).toLocaleString('zh-CN');
+  const pctf = v => v == null ? '—' : (v * 100).toFixed(2) + '%';
+  const roasf = v => v == null ? '—' : v.toFixed(2);
+  function adAgg(rows) {
+    const a = { spend: 0, impr: 0, clicks: 0, link: 0, purch: 0, value: 0 };
+    rows.forEach(r => {
+      a.spend += n0(r.spend); a.impr += n0(r.impressions); a.clicks += n0(r.clicks);
+      a.link += n0(r.link_clicks); a.purch += n0(r.actions_omni_purchase); a.value += n0(r.action_values_omni_purchase);
+    });
+    return a;
+  }
+  function adErrText(e) {
+    switch (e && e.code) {
+      case 'no_mcp': case 'not_granted': case 'capability_disabled': case 'capability_removed':
+        return { t: '这个视图读不到连接器数据', d: '请在 claude.ai 里登录后打开这个面板。' };
+      case 'needs_reauth': return { t: 'Windsor.ai 的授权过期了', d: '到 claude.ai 设置 → 连接器，重新连接 Windsor.ai，再点「重新载入」。', retry: true };
+      case 'server_not_connected': return { t: '找不到 Windsor.ai 连接器', d: '到 claude.ai 设置 → 连接器，添加并连接 Windsor.ai，再点「重新载入」。', retry: true };
+      case 'selection_required': return { t: '你有不止一个 Windsor.ai 连接', d: '在 claude.ai 弹出的提示里选一个，再点「重新载入」。', retry: true };
+      case 'not_in_manifest': return { t: '还没允许这个面板读取 Windsor.ai', d: '点「重新载入」，在弹出的提示里选允许；也可以在面板的权限菜单里打开。', retry: true };
+      case 'approval_required': return { t: '读取投放数据需要你同意', d: '点「重新载入」，在弹出的提示里选允许。', retry: true };
+      case 'blocked_by_policy': return { t: '组织设置不允许使用 Windsor.ai', d: '需要管理员在 claude.ai 里放开这个连接器。' };
+      case 'tool_error': return { t: 'Windsor.ai 返回了错误', d: (String(e.message || '').slice(0, 200) || '到 Windsor.ai 看看 Meta 账户是否还连着。'), retry: true };
+      case 'bad_shape': return { t: '返回的内容里没有投放数据', d: '稍后点「重新载入」再试。', retry: true };
+      default: return { t: 'Windsor.ai 暂时连不上', d: '稍后点「重新载入」再试。', retry: true };
+    }
+  }
+  function renderAdsViews() { renderAds(); renderPlan(false); }
+  async function fetchAds(acct, refresh) {
+    const st = adState(acct);
+    if (st.status === 'loading' || st.status === 'pending') return;
+    st.status = 'loading'; renderAdsViews();
+    const mcp = await getMcp();
+    if (!mcp) { st.status = 'error'; st.err = { code: 'no_mcp' }; renderAdsViews(); return; }
+    // one pull covers every range on the page: last 30 days, one row per day and campaign
+    const input = { connector: 'facebook', accounts: [acct], date_preset: 'last_30d', fields: AD_FIELDS };
+    let first = true, polls = 0, retried = false;
+    for (;;) {
+      try {
+        const opts = first ? { cache: { staleTime: 10 * 60000, gcTime: 6 * 3600000, refresh: !!refresh } } : { cache: false };
+        first = false;
+        const res = await mcp.callTool(ADS_SERVER, 'get_data', input, opts);
+        const pl = res && res.payload;
+        if (pl && pl.status === 'pending' && polls < 20) {
+          polls++; st.status = 'pending'; renderAdsViews();
+          await sleep(Math.min(60, Math.max(5, Number(pl.poll_after_seconds) || 10)) * 1000);
+          continue;
+        }
+        if (!pl || !Array.isArray(pl.data)) throw { code: 'bad_shape' };
+        st.rows = pl.data; st.fetchedAt = res.cache ? res.cache.storedAt : Date.now(); st.err = null; st.status = 'ready';
+        break;
+      } catch (e) {
+        if (e && e.retryable && !retried) { retried = true; await sleep(Math.min(60000, e.retryAfterMs || 1500) + Math.random() * 1500); continue; }
+        st.err = e && e.code ? e : { code: 'upstream_error' };
+        if (AD_DENIALS.includes(st.err.code)) st.rows = null;
+        st.status = st.rows ? 'stale' : 'error';
+        break;
+      }
+    }
+    renderAdsViews();
+  }
+
+  let adDays = [], adLastW = 0;
+  function niceCeil(v) {
+    const p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p;
+    return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+  }
+  function drawAdChart() {
+    const el = $('#ad-chart'); if (!el) return;
+    const days = adDays, cur = el.dataset.cur;
+    const W = Math.max(260, el.clientWidth || 600), H = 190, L = 54, R = 6, T = 10, B = 24;
+    adLastW = W;
+    const iw = W - L - R, ih = H - T - B, base = T + ih;
+    const top = niceCeil(Math.max(1, ...days.map(d => d.spend)));
+    const y = v => base - (v / top) * ih;
+    const slot = iw / days.length, bw = Math.max(3, Math.min(30, slot - 2));
+    const every = Math.max(1, Math.ceil(days.length / Math.max(2, Math.floor(iw / 58))));
+    const yLab = v => (cur && cur !== 'BRL' ? cur + ' ' : 'R$') + v.toLocaleString('zh-CN', { maximumFractionDigits: v < 10 ? 1 : 0 });
+    let svg = `<svg width="${W}" height="${H}" role="img" aria-label="每天花费柱状图，明细见下方表格">`;
+    [0, top / 2, top].forEach(v => {
+      if (v) svg += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"></line>`;
+      svg += `<text class="yl" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${yLab(v)}</text>`;
+    });
+    days.forEach((d, i) => {
+      const cx = L + slot * i + slot / 2, x = cx - bw / 2, h = (d.spend / top) * ih;
+      if (h > 0) {
+        const r = Math.min(4, h, bw / 2), yt = base - h;
+        svg += `<path class="bm" data-i="${i}" d="M${x},${base}V${yt + r}Q${x},${yt} ${x + r},${yt}H${x + bw - r}Q${x + bw},${yt} ${x + bw},${yt + r}V${base}Z"></path>`;
+      }
+      if (i % every === 0) svg += `<text class="xl" x="${cx}" y="${H - 6}" text-anchor="middle">${d.short}</text>`;
+    });
+    svg += `<line class="base" x1="${L}" x2="${W - R}" y1="${base}" y2="${base}"></line>`;
+    days.forEach((d, i) => { svg += `<rect class="hit" data-i="${i}" x="${L + slot * i}" y="${T}" width="${slot}" height="${ih}"></rect>`; });
+    el.innerHTML = svg + '</svg><div class="tip" hidden></div>';
+    el.onmouseleave = () => { const t = el.querySelector('.tip'); if (t) t.hidden = true; el.querySelectorAll('.bm').forEach(b => b.classList.remove('dim')); };
+  }
+  function adStatusPill(s) {
+    if (s === 'ACTIVE') return '<span class="st st-active">投放中</span>';
+    if (s === 'PAUSED') return '<span class="st st-dropped">已暂停</span>';
+    return s ? `<span class="st st-dropped">${esc(s)}</span>` : '';
+  }
+  function renderAds() {
+    const topEl = $('#ad-top'), body = $('#ad-body');
+    if (state.status !== 'ready') {
+      topEl.innerHTML = '';
+      body.innerHTML = `<div class="today-empty"><h3>${state.status === 'loading' ? '正在载入…' : '暂时连不上数据'}</h3><p>这里会显示每家公司的 Meta 广告投放结果。</p></div>`;
+      return;
+    }
+    const list = adCompanies();
+    if (!list.length) {
+      topEl.innerHTML = '';
+      body.innerHTML = `<div class="today-empty"><h3>还没有接投放数据的公司</h3><p>在公司的「编辑」里填上 Meta 广告账户 ID（Ads Manager 链接里 act= 后面的数字），这里就会显示它的投放结果。</p></div>`;
+      return;
+    }
+    if (!list.some(c => c.id === state.ads.pid)) state.ads.pid = list[0].id;
+    const p = find(state.ads.pid), acct = String(p.metaAccount), st = adState(acct);
+    if (state.view === 'ads' && st.status === 'idle') { fetchAds(acct); return; }
+    const busy = st.status === 'loading' || st.status === 'pending';
+    const range = [7, 14, 30].includes(state.ads.range) ? state.ads.range : 7;
+    const upd = st.status === 'pending' ? 'Windsor 正在生成报表…'
+      : busy ? '正在读取…'
+      : st.fetchedAt ? (() => { const d = new Date(st.fetchedAt); return `数据读取于 ${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())} · 不含今天`; })() : '';
+    topEl.innerHTML = `
+      ${list.length > 1 ? `<div class="cos">${list.map(c => `<button type="button" class="co role-${roleOf(c).k}" data-adco="${esc(c.id)}" aria-pressed="${c.id === p.id}"><span class="co-n">${esc(c.name || '未命名')}</span></button>`).join('')}</div>` : ''}
+      <span class="ad-co"><b>${esc(p.name || '未命名')}</b>Meta 广告账户 <span class="mono">${esc(acct)}</span></span>
+      <div class="seg" role="group" aria-label="时间范围">${[7, 14, 30].map(r => `<button type="button" data-adrange="${r}" aria-pressed="${range === r}">近 ${r} 天</button>`).join('')}</div>
+      <span class="ad-upd">${upd}</span>
+      <button class="btn sm" type="button" data-adload="${esc(acct)}" data-refresh="1" ${busy ? 'disabled' : ''}>${busy ? '读取中…' : '刷新'}</button>`;
+
+    if (!st.rows) {
+      if (busy || st.status === 'idle') {
+        body.innerHTML = `<div class="today-empty"><h3>${st.status === 'pending' ? 'Windsor 正在生成报表…' : '正在读取投放数据…'}</h3><p>第一次读取时，claude.ai 会问你是否允许这个面板使用 Windsor.ai，选允许即可。</p></div>`;
+      } else {
+        const m = adErrText(st.err);
+        body.innerHTML = `<div class="today-empty"><h3>${esc(m.t)}</h3><p>${esc(m.d)}</p>${m.retry ? `<div><button class="btn primary sm" type="button" data-adload="${esc(acct)}">重新载入</button></div>` : ''}</div>`;
+      }
+      return;
+    }
+
+    const rows = adInRange(st.rows, range), cur = adCur(st.rows), a = adAgg(rows);
+    const byDay = {};
+    rows.forEach(r => { const k = String(r.date); (byDay[k] = byDay[k] || []).push(r); });
+    adDays = [];
+    for (let i = range; i >= 1; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = isoOf(d), g = adAgg(byDay[k] || []);
+      adDays.push({ date: k, short: `${d.getMonth() + 1}/${d.getDate()}`, full: `${d.getMonth() + 1}月${d.getDate()}日 周${WEEK[d.getDay()]}`, ...g });
+    }
+    const activeDays = adDays.filter(d => d.spend > 0).length;
+    const camps = {};
+    rows.forEach(r => { const k = String(r.campaign || '未命名广告系列'); (camps[k] = camps[k] || { rows: [], status: r.campaign_status }).rows.push(r); if (String(r.date) >= (camps[k].last || '')) { camps[k].last = String(r.date); camps[k].status = r.campaign_status; } });
+    const campList = Object.entries(camps).map(([name, c]) => ({ name, status: c.status, ...adAgg(c.rows) })).sort((x, y) => y.spend - x.spend);
+
+    const tiles = [
+      { l: '花费', n: money(a.spend, cur), sub: activeDays ? `${activeDays} 天有投放 · 日均 ${money(a.spend / activeDays, cur)}` : '这段时间没有投放' },
+      { l: '展示', n: intf(a.impr), sub: `千次展示 ${money(ratio(a.spend, a.impr / 1000), cur)}` },
+      { l: '链接点击', n: intf(a.link), sub: `单次 ${money(ratio(a.spend, a.link), cur)}` },
+      { l: '点击率', n: pctf(ratio(a.clicks, a.impr)), sub: '全部点击 ÷ 展示' },
+      { l: '购买', n: intf(a.purch), sub: a.purch ? `每单 ${money(ratio(a.spend, a.purch), cur)}` : 'Meta 归因的购买' },
+      { l: 'ROAS', n: roasf(ratio(a.value, a.spend)), sub: `购买金额 ${money(a.value, cur)}` },
+    ];
+    const stale = st.status === 'stale' ? (() => { const m = adErrText(st.err); return `<div class="adnote err"><b>${esc(m.t)}</b><span>下面是上次读到的数据。${esc(m.d)}</span></div>`; })() : '';
+    const pixel = a.spend > 0 && a.purch === 0
+      ? `<div class="adnote"><b>花了 ${money(a.spend, cur)}，Meta 没有记录到任何购买</b><span>如果网站这段时间其实有订单，多半是 Shopify 里的 Meta 像素（Facebook & Instagram 应用）没装好，或没开购买事件。如果确实没有订单，就是广告带来的点击没有转化。</span></div>` : '';
+
+    body.innerHTML = `
+      ${stale}
+      <div class="kpis">${tiles.map(t => `<div class="kpi"><span class="l">${t.l}</span><span class="n">${t.n}</span><span class="sub">${t.sub}</span></div>`).join('')}</div>
+      ${pixel}
+      <div class="chart-card">
+        <h3>每天花费<small>近 ${range} 天 · 鼠标移到柱子上看当天点击和购买</small></h3>
+        <div class="chart" id="ad-chart" data-cur="${esc(cur)}"></div>
+        <details class="days"><summary>看每天的明细表</summary>
+          <div class="tbl-wrap"><table class="adt"><thead><tr><th>日期</th><th>花费</th><th>展示</th><th>链接点击</th><th>购买</th></tr></thead>
+          <tbody>${adDays.slice().reverse().map(d => `<tr><td>${d.full}</td><td>${money(d.spend, cur)}</td><td>${intf(d.impr)}</td><td>${intf(d.link)}</td><td>${intf(d.purch)}</td></tr>`).join('')}</tbody></table></div>
+        </details>
+      </div>
+      <div class="chart-card">
+        <h3>广告系列<small>近 ${range} 天 · 按花费排序</small></h3>
+        <div class="tbl-wrap"><table class="adt">
+          <thead><tr><th>广告系列</th><th>状态</th><th>花费</th><th>展示</th><th>链接点击</th><th>点击率</th><th>单次点击</th><th>购买</th><th>ROAS</th></tr></thead>
+          <tbody>${campList.length ? campList.map(c => `<tr><td>${esc(c.name)}</td><td>${adStatusPill(c.status)}</td><td>${money(c.spend, cur)}</td><td>${intf(c.impr)}</td><td>${intf(c.link)}</td><td>${pctf(ratio(c.clicks, c.impr))}</td><td>${money(ratio(c.spend, c.link), cur)}</td><td>${intf(c.purch)}</td><td>${roasf(ratio(c.value, c.spend))}</td></tr>`).join('') : `<tr><td colspan="9">这段时间没有投放。</td></tr>`}</tbody>
+          ${campList.length > 1 ? `<tfoot><tr><td>合计</td><td></td><td>${money(a.spend, cur)}</td><td>${intf(a.impr)}</td><td>${intf(a.link)}</td><td>${pctf(ratio(a.clicks, a.impr))}</td><td>${money(ratio(a.spend, a.link), cur)}</td><td>${intf(a.purch)}</td><td>${roasf(ratio(a.value, a.spend))}</td></tr></tfoot>` : ''}
+        </table></div>
+      </div>
+      <p class="hint">数据来自 Windsor.ai 读取的 Meta Ads 报表，购买数和金额是 Meta 归因的结果，可能和 Shopify 里的实际订单不一样。</p>`;
+    drawAdChart();
+  }
+  function adsMini(p) {
+    if (!p.metaAccount) return '';
+    const acct = String(p.metaAccount), st = adState(acct);
+    if (!st.rows) {
+      const busy = st.status === 'loading' || st.status === 'pending';
+      return `<div class="ads-mini"><span class="k">Meta 投放</span><br>${busy ? '正在读取…' : `<button class="linkbtn" type="button" data-adload="${esc(acct)}">读取近 7 天投放数据</button>`}</div>`;
+    }
+    const rows = adInRange(st.rows, 7), a = adAgg(rows), cur = adCur(st.rows);
+    return `<div class="ads-mini"><span class="k">Meta 投放 · 近 7 天</span><br>花费 ${money(a.spend, cur)} · 链接点击 ${intf(a.link)} · 购买 ${intf(a.purch)} · ROAS ${roasf(ratio(a.value, a.spend))}<br><button class="linkbtn" type="button" data-goads="${esc(p.id)}">看投放详情</button></div>`;
+  }
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => { const el = $('#ad-chart'); if (el && el.clientWidth && Math.abs(el.clientWidth - adLastW) > 2) drawAdChart(); }).observe($('#view-ads'));
+  }
+  $('#view-ads').addEventListener('mousemove', e => {
+    const el = $('#ad-chart'); if (!el) return;
+    const tip = el.querySelector('.tip'); if (!tip) return;
+    const hit = e.target.closest('.hit');
+    if (!hit || !el.contains(hit)) { tip.hidden = true; el.querySelectorAll('.bm').forEach(b => b.classList.remove('dim')); return; }
+    const d = adDays[+hit.dataset.i]; if (!d) return;
+    const cur = el.dataset.cur;
+    tip.innerHTML = `<b>${esc(d.full)}</b><span>花费 ${money(d.spend, cur)}</span><span>链接点击 ${intf(d.link)}</span><span>购买 ${intf(d.purch)}</span>`;
+    tip.hidden = false;
+    const box = el.getBoundingClientRect();
+    let x = e.clientX - box.left + 14;
+    if (x + tip.offsetWidth > box.width) x = e.clientX - box.left - tip.offsetWidth - 14;
+    tip.style.left = Math.max(0, x) + 'px';
+    el.querySelectorAll('.bm').forEach(b => b.classList.toggle('dim', b.dataset.i !== hit.dataset.i));
+  });
+
   function render() {
     paintDates();
     VIEWS.forEach(v => { $('#view-' + v).hidden = state.view !== v; });
     document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
     renderToday();
     renderPlan(false);
+    renderAds();
     renderSummary();
     renderProjects();
     renderNext();
@@ -1371,11 +1657,11 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   /* ---------- editor (company basics) ---------- */
   const dlg = $('#editor');
   let draft = null, draftIsNew = false, delArmed = null;
-  const BASIC = ['name', 'tagline', 'stage', 'stageNote', 'roleType', 'role', 'roleNote', 'focus', 'health', 'milestone', 'links', 'notes'];
+  const BASIC = ['name', 'tagline', 'stage', 'stageNote', 'roleType', 'role', 'roleNote', 'focus', 'health', 'milestone', 'links', 'notes', 'metaAccount'];
 
   function blankProject() {
     return { name: '', tagline: '', stage: 'build', stageNote: '', roleType: 'lead', role: '', roleNote: '',
-      focus: 'keep', health: 'ok', milestone: { title: '', date: '' }, links: [], notes: '' };
+      focus: 'keep', health: 'ok', milestone: { title: '', date: '' }, links: [], notes: '', metaAccount: '' };
   }
   function chipGroup(name, list, val, extraCls) {
     return `<div class="chips">${list.map(o => `
@@ -1424,6 +1710,9 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       <label class="lf"><span class="fl">链接（每行一个，例如：官网：1999joias.com）</span>
         <textarea class="field" id="f-links" rows="3" placeholder="后台：https://admin.shopify.com/...">${esc((d.links || []).map(normLink).filter(Boolean).map(l => l.label + '：' + l.url).join('\n'))}</textarea>
       </label>
+      <label class="lf"><span class="fl">Meta 广告账户 ID（选填，填了会出现在「投放」页）</span>
+        <input class="field" id="f-meta" type="text" inputmode="numeric" maxlength="30" value="${esc(d.metaAccount || '')}" placeholder="Ads Manager 链接里 act= 后面的数字">
+      </label>
       <label class="lf"><span class="fl">备注</span>
         <textarea class="field" id="f-notes" rows="3" placeholder="合作方、关键人、要记住的事">${esc(d.notes)}</textarea>
       </label>
@@ -1443,6 +1732,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     draft.milestone = { title: $('#f-ms-title').value.trim(), date: $('#f-ms-date').value || '' };
     draft.links = parseLinkLines($('#f-links').value);
     draft.notes = $('#f-notes').value.trim();
+    draft.metaAccount = $('#f-meta').value.replace(/\D/g, '');
   }
   function openEditor(id) {
     const p = id ? find(id) : null;
@@ -1512,6 +1802,14 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     const ed = e.target.closest('[data-edit]');
     if (ed && state.canWrite) { openEditor(ed.dataset.edit); return; }
     if (e.target.closest('#btn-new, [data-new]')) { openEditor(null); return; }
+    const adl = e.target.closest('[data-adload]');
+    if (adl) { fetchAds(adl.dataset.adload, !!adl.dataset.refresh); return; }
+    const adr = e.target.closest('[data-adrange]');
+    if (adr) { state.ads.range = +adr.dataset.adrange; local.set('adsRange', state.ads.range); renderAds(); return; }
+    const adc = e.target.closest('[data-adco]');
+    if (adc) { state.ads.pid = adc.dataset.adco; local.set('adsPid', state.ads.pid); renderAds(); return; }
+    const goa = e.target.closest('[data-goads]');
+    if (goa) { state.ads.pid = goa.dataset.goads; local.set('adsPid', state.ads.pid); setView('ads'); return; }
     const act = e.target.closest('[data-act]');
     if (act && DB) {
       const { pid, tid } = act.dataset;
