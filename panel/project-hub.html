@@ -4,9 +4,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
 <style>
-/* Layout: two views on one desk. "今天" = today's list across every company, grouped by company,
-   with the next three days and today's finished items beside it. "全部公司" = every company as a
-   card (stage, my role, milestone, to-dos) plus one merged to-do list. Phones stack to one column. */
+/* Layout: three views on one desk.
+   今天 = today's list across every company. 规划 = one company's tree: 目标 → 关键结果 → 小项目 → 待办.
+   全部公司 = every company as a card plus one merged to-do list. Phones stack to one column. */
 :root {
   --bg: #eef1f4;
   --surface: #ffffff;
@@ -59,6 +59,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body {
   background: var(--bg);
   color: var(--ink);
@@ -95,8 +96,37 @@ button { cursor: pointer; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.danger { color: var(--bad); }
 .btn.danger.armed { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.btn.sm { padding: 4px 10px; font-size: 13px; }
 .btn:disabled { opacity: .55; cursor: default; }
 .badge-ro { font-size: 12px; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 10px; }
+
+/* shared bits */
+.bar { display: block; height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.bar.ok > span { background: var(--ok); }
+.itag { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.due { font-family: var(--f-mono); font-size: 11px; color: var(--faint); white-space: nowrap; padding-top: 2px; }
+.due.late { color: var(--bad); }
+.due.soon { color: var(--risk); }
+.mini { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font-size: 12px; padding: 1px 8px; color: var(--muted); white-space: nowrap; }
+.mini:hover { color: var(--accent); border-color: var(--accent); }
+.tproj { font-size: 11px; border-radius: 4px; padding: 0 6px; color: var(--rc); background: var(--rs); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.role-lead { --rc: var(--r-lead); --rs: var(--r-lead-soft); }
+.role-partner { --rc: var(--r-partner); --rs: var(--r-partner-soft); }
+.role-advisor { --rc: var(--r-advisor); --rs: var(--r-advisor-soft); }
+.role-exec { --rc: var(--r-exec); --rs: var(--r-exec-soft); }
+.role-investor { --rc: var(--r-investor); --rs: var(--r-investor-soft); }
+.role-support { --rc: var(--r-support); --rs: var(--r-support-soft); }
+.field, .inl input, .inl select, .quick input, .quick select, .tquick input, .tquick select {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 9px; min-width: 0; width: 100%;
+}
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel-h { padding: 12px 16px 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.panel-h h2 { margin: 0; font-size: 14px; }
+.panel-h .cnt { font-family: var(--f-mono); font-size: 12px; color: var(--faint); }
+.today-empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px 22px; display: grid; gap: 6px; }
+.today-empty h3 { margin: 0; font-family: var(--f-display); font-size: 18px; }
+.today-empty p { margin: 0; color: var(--muted); }
 
 /* ---------- today view ---------- */
 .today-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 28px; }
@@ -122,6 +152,7 @@ button { cursor: pointer; }
 
 .today-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 .today-main { display: grid; gap: 14px; min-width: 0; }
+#td-blocks { display: grid; gap: 14px; }
 .tblock { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
 .tblock-h { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .tblock-h .name { font-family: var(--f-display); font-size: 17px; font-weight: 700; }
@@ -131,24 +162,16 @@ button { cursor: pointer; }
 .trow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: start; padding: 9px 0; }
 .trow + .trow { border-top: 1px solid var(--line); }
 .trow input { margin: 4px 0 0; accent-color: var(--accent); width: 17px; height: 17px; }
+.trow .txt { display: grid; gap: 3px; justify-items: start; min-width: 0; }
 .trow label { cursor: pointer; font-size: 15px; overflow-wrap: anywhere; }
 .trow .due { padding-top: 3px; }
-.mini { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font-size: 12px; padding: 1px 8px; color: var(--muted); white-space: nowrap; }
-.mini:hover { color: var(--accent); border-color: var(--accent); }
 .pin { font-size: 11px; color: var(--accent); white-space: nowrap; padding-top: 3px; }
-
-.today-empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px 22px; display: grid; gap: 6px; }
-.today-empty h3 { margin: 0; font-family: var(--f-display); font-size: 18px; }
-.today-empty p { margin: 0; color: var(--muted); }
 
 .tquick { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; display: grid; grid-template-columns: minmax(0, 1fr) 160px auto; gap: 8px; align-items: center; }
 .tquick h3 { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; }
+.tquick button { white-space: nowrap; }
 
 .side { display: grid; gap: 14px; min-width: 0; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
-.panel-h { padding: 12px 16px 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.panel-h h2 { margin: 0; font-size: 14px; }
-.panel-h .cnt { font-family: var(--f-mono); font-size: 12px; color: var(--faint); }
 .slist { list-style: none; margin: 0; padding: 0 16px 10px; display: grid; }
 .srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 7px 0; align-items: start; }
 .srow + .srow { border-top: 1px solid var(--line); }
@@ -159,6 +182,77 @@ button { cursor: pointer; }
 .drow input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; }
 .drow label { font-size: 13px; color: var(--faint); text-decoration: line-through; cursor: pointer; overflow-wrap: anywhere; }
 .slist .none { color: var(--faint); font-size: 13px; padding: 2px 0 6px; }
+
+/* ---------- plan view ---------- */
+.cos { display: flex; flex-wrap: wrap; gap: 8px; }
+.co { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 7px 14px; display: inline-flex; gap: 8px; align-items: baseline; }
+.co .co-n { font-weight: 700; }
+.co .co-r { font-size: 12px; color: var(--rc); }
+.co[aria-pressed="true"] { border-color: var(--rc); background: var(--rs); box-shadow: inset 0 0 0 1px var(--rc); }
+.plan-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+.plan-main { display: grid; gap: 16px; min-width: 0; }
+.plan-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.plan-head h2 { margin: 0; font-family: var(--f-display); font-size: 22px; }
+.plan-head .period { color: var(--muted); font-size: 13px; }
+
+.obj { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.obj-h { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: baseline; }
+.lvl { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.lvl.kr { color: var(--muted); background: var(--surface-2); border: 1px solid var(--line); }
+.ttl { border: 0; background: none; padding: 0; text-align: left; color: inherit; overflow-wrap: anywhere; min-width: 0; }
+button.ttl:hover { color: var(--accent); }
+.obj-title { font-family: var(--f-display); font-size: 18px; font-weight: 700; line-height: 1.35; }
+.obj-meta { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.obj-prog { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 12px; color: var(--muted); }
+.st { font-size: 11px; border-radius: 999px; padding: 0 8px; font-weight: 500; white-space: nowrap; }
+.st-draft { color: var(--risk); background: var(--risk-soft); }
+.st-active { color: var(--accent); background: var(--accent-soft); }
+.st-done { color: var(--ok); background: var(--ok-soft); }
+.st-dropped { color: var(--faint); background: var(--surface-2); }
+
+.krs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.krrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto 90px; gap: 10px; align-items: center; font-size: 13px; padding: 6px 10px; background: var(--surface-2); border-radius: 7px; }
+.kr-val { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--muted); }
+.kr-val input { width: 72px; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 2px 6px; text-align: right; font-family: var(--f-mono); }
+.kr-val .tgt { font-family: var(--f-mono); }
+
+.inits { display: grid; gap: 10px; }
+.init { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; min-width: 0; }
+.init-h { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; }
+.lvl.ip { color: var(--r-exec); background: var(--r-exec-soft); }
+.init-title { font-weight: 700; font-size: 15px; }
+.ptasks { list-style: none; margin: 0; padding: 0; display: grid; }
+.ptask { display: grid; grid-template-columns: auto minmax(0, 1fr) 138px auto; gap: 8px; align-items: center; padding: 5px 0; font-size: 13px; }
+.ptask + .ptask { border-top: 1px dashed var(--line); }
+.ptask input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+.ptask label { overflow-wrap: anywhere; cursor: pointer; }
+.ptask.done label { color: var(--faint); text-decoration: line-through; }
+.ptask input[type="date"], .ptask select { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 2px 6px; font-size: 12px; min-width: 0; width: 100%; }
+.ptask.loose { grid-template-columns: auto minmax(0, 1fr) 138px 150px auto; }
+.add { border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 7px; padding: 5px 12px; font-size: 13px; justify-self: start; }
+.add:hover { color: var(--accent); border-color: var(--accent); }
+.add.big { padding: 10px 16px; font-size: 14px; }
+.loose { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
+.loose-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.loose-h h3 { margin: 0; font-size: 15px; }
+.loose-h .hint, .hint { color: var(--faint); font-size: 12px; }
+.loose-h .cnt { font-family: var(--f-mono); color: var(--faint); font-size: 12px; }
+.empty-line { color: var(--faint); font-size: 13px; margin: 0; }
+
+.inl { display: grid; gap: 8px; padding: 10px 12px; background: var(--accent-soft); border-radius: 8px; min-width: 0; }
+.inl-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.inl-row.three { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); }
+.inl label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); min-width: 0; }
+.inl-b { display: flex; gap: 8px; flex-wrap: wrap; }
+.inl-b .danger { margin-left: auto; }
+.inl .help { margin: 0; font-size: 12px; color: var(--muted); }
+
+.guide { padding: 4px 16px 14px; display: grid; gap: 10px; font-size: 13px; }
+.guide dl { margin: 0; display: grid; gap: 8px; }
+.guide dt { font-weight: 700; display: flex; gap: 6px; align-items: center; }
+.guide dd { margin: 0; color: var(--muted); }
+.side-facts { padding: 4px 16px 14px; display: grid; gap: 6px; font-size: 13px; }
+.side-facts .k { color: var(--faint); font-size: 12px; }
 
 /* ---------- summary (all view) ---------- */
 .summary {
@@ -179,7 +273,6 @@ button { cursor: pointer; }
 .rolekeys { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
 .rolekeys .k { display: inline-flex; align-items: center; gap: 6px; }
 .rolekeys .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.rolekeys b { font-family: var(--f-mono); font-weight: 500; }
 
 /* ---------- all view grid ---------- */
 .main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
@@ -224,12 +317,6 @@ button { cursor: pointer; }
 .role-type { font-size: 12px; font-weight: 700; color: var(--rc); letter-spacing: .06em; }
 .role-name { font-weight: 500; overflow-wrap: anywhere; }
 .role-note { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
-.role-lead { --rc: var(--r-lead); --rs: var(--r-lead-soft); }
-.role-partner { --rc: var(--r-partner); --rs: var(--r-partner-soft); }
-.role-advisor { --rc: var(--r-advisor); --rs: var(--r-advisor-soft); }
-.role-exec { --rc: var(--r-exec); --rs: var(--r-exec-soft); }
-.role-investor { --rc: var(--r-investor); --rs: var(--r-investor-soft); }
-.role-support { --rc: var(--r-support); --rs: var(--r-support-soft); }
 
 .stage { display: grid; gap: 6px; }
 .track { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
@@ -242,6 +329,16 @@ button { cursor: pointer; }
 .stage-note { margin: 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .off-tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; margin-right: 6px; }
 
+.okr-mini { display: grid; gap: 8px; }
+.om { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; font-size: 13px; }
+.om .om-t { overflow-wrap: anywhere; }
+.om .om-t b { font-size: 11px; color: var(--accent); margin-right: 6px; }
+.om .om-p { color: var(--muted); font-size: 12px; }
+.om .bar { grid-column: 1 / -1; }
+.ichips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ichip { font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; color: var(--muted); }
+.ichip b { font-weight: 500; color: var(--ink); }
+
 .ms { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 13px; border-top: 1px dashed var(--line); padding-top: 10px; flex-wrap: wrap; }
 .ms .ms-t { min-width: 0; overflow-wrap: anywhere; }
 .ms .ms-t small { color: var(--faint); display: block; font-size: 11px; letter-spacing: .04em; }
@@ -253,9 +350,6 @@ button { cursor: pointer; }
 .task { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 3px 0; font-size: 13px; }
 .task input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; }
 .task label { overflow-wrap: anywhere; cursor: pointer; }
-.due { font-family: var(--f-mono); font-size: 11px; color: var(--faint); white-space: nowrap; padding-top: 2px; }
-.due.late { color: var(--bad); }
-.due.soon { color: var(--risk); }
 .more { font-size: 12px; color: var(--faint); padding-left: 23px; }
 .no-tasks { font-size: 13px; color: var(--faint); margin: 0; }
 
@@ -264,6 +358,7 @@ button { cursor: pointer; }
 .card-f .links { display: flex; gap: 4px 12px; flex-wrap: wrap; }
 .card-f a { color: var(--accent); text-decoration: none; }
 .card-f a:hover { text-decoration: underline; }
+.card-f .acts { display: flex; gap: 12px; }
 .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 12px; }
 
 /* ---------- merged to-do list (all view) ---------- */
@@ -278,16 +373,12 @@ button { cursor: pointer; }
 .todo input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; }
 .todo label { cursor: pointer; overflow-wrap: anywhere; font-size: 13px; }
 .todo .meta { display: flex; gap: 8px; align-items: center; margin-top: 2px; flex-wrap: wrap; }
-.tproj { font-size: 11px; border-radius: 4px; padding: 0 6px; color: var(--rc); background: var(--rs); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .next-empty { color: var(--faint); font-size: 13px; padding: 4px 0 12px; margin: 0; }
 .showall { border: 0; background: none; color: var(--accent); font-size: 12px; padding: 8px 0 4px; text-align: left; }
 .quick { border-top: 1px solid var(--line); padding: 12px 16px 14px; display: grid; gap: 8px; }
 .quick h3 { margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; }
 .quick-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-.field, .quick input, .quick select, .tquick input, .tquick select {
-  border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 9px; min-width: 0; width: 100%;
-}
-.quick button, .tquick button { white-space: nowrap; }
+.quick button { white-space: nowrap; }
 
 /* ---------- empty / status ---------- */
 .empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 28px 22px; display: grid; gap: 10px; justify-items: start; }
@@ -318,11 +409,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 .chip input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chip.role-chip input:checked + span { border-color: var(--rc); background: var(--rs); color: var(--rc); }
-.ed-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.ed-task { display: grid; grid-template-columns: auto minmax(0, 1fr) 140px auto; gap: 8px; align-items: center; }
-.ed-task input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
-.ed-task .x { border: 0; background: none; color: var(--faint); font-size: 18px; line-height: 1; padding: 2px 6px; }
-.ed-task .x:hover { color: var(--bad); }
+.ed-note { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--muted); }
 .ed-err { color: var(--bad); font-size: 13px; margin: 0; }
 
 /* ---------- toast ---------- */
@@ -335,7 +422,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 .toast button { border: 0; background: none; color: var(--accent-soft); font-weight: 700; padding: 0; }
 
 @media (max-width: 960px) {
-  .main, .today-grid { grid-template-columns: minmax(0, 1fr); }
+  .main, .today-grid, .plan-grid { grid-template-columns: minmax(0, 1fr); }
   .next { position: static; order: -1; }
   .next-list { max-height: none; }
   .summary { grid-template-columns: minmax(0, 1fr); }
@@ -349,17 +436,26 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   .stat:nth-child(even) { border-left: 1px solid var(--line); }
   .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
   .cards { grid-template-columns: minmax(0, 1fr); }
-  .row2 { grid-template-columns: minmax(0, 1fr); }
-  .ed-task { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .ed-task input[type="date"] { grid-column: 2 / 3; }
+  .row2, .inl-row, .inl-row.three { grid-template-columns: minmax(0, 1fr); }
   .trow { grid-template-columns: auto minmax(0, 1fr) auto; }
   .trow .mini { grid-column: 2 / 3; justify-self: start; }
   .tquick { grid-template-columns: minmax(0, 1fr) auto; }
   .tquick input { grid-column: 1 / -1; }
+  .krrow { grid-template-columns: auto minmax(0, 1fr); }
+  .krrow .kr-val, .krrow .bar { grid-column: 2 / 3; }
+  .ptask, .ptask.loose { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .ptask input[type="date"], .ptask select { grid-column: 2 / 3; grid-row: 2; }
+  .ptask.loose select { grid-row: 3; }
+  .ptask .mini { grid-column: 3; grid-row: 1; }
+  .obj-h { grid-template-columns: auto minmax(0, 1fr); }
+  .obj-meta { grid-column: 1 / -1; justify-content: flex-start; }
+  .init-h { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .init-h .due { grid-column: 2 / 3; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .card { transition: border-color .15s ease; }
   .card:hover { border-color: var(--faint); }
+  .bar > span { transition: width .3s ease; }
 }
 </style>
 
@@ -372,6 +468,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     <div class="top-actions">
       <div class="tabs" id="tabs" role="group" aria-label="视图">
         <button type="button" data-view="today">今天</button>
+        <button type="button" data-view="plan">规划</button>
         <button type="button" data-view="all">全部公司</button>
       </div>
       <span class="badge-ro" id="ro" hidden>只读</span>
@@ -405,6 +502,32 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
           <div class="panel-h"><h2>今天已完成</h2><span class="cnt" id="td-done-cnt"></span></div>
           <ul class="slist" id="td-done"></ul>
         </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== 规划 ===== -->
+  <section class="view" id="view-plan" aria-label="规划" hidden>
+    <div class="cos" id="pl-cos" role="group" aria-label="选择公司"></div>
+    <div class="plan-grid">
+      <div class="plan-main" id="pl-main"></div>
+      <aside class="side">
+        <div class="panel">
+          <div class="panel-h"><h2>怎么拆</h2></div>
+          <div class="guide">
+            <dl>
+              <dt><span class="lvl">目标</span>这个季度要达成什么</dt>
+              <dd>写结果，不写动作。例：黑五打出第一波销量。</dd>
+              <dt><span class="lvl kr">KR</span>怎么算达成</dt>
+              <dd>能数的数字，填当前值和目标值。例：黑五期间成交 30 单。</dd>
+              <dt><span class="lvl ip">小项目</span>为了 KR 要做的大事</dt>
+              <dd>例：黑五促销、基础搭建。手续、日常运营这类不需要目标的，放在「没挂目标的小项目」。</dd>
+              <dt>待办</dt>
+              <dd>拆到一天能做完，填上日期，到那天会自动出现在「今天」。</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="panel" id="pl-facts"></div>
       </aside>
     </div>
   </section>
@@ -491,6 +614,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     { k: 'watch', l: '观望', d: '只跟进关键节点' },
   ];
   const HEALTH = [{ k: 'ok', l: '顺利' }, { k: 'risk', l: '有风险' }, { k: 'blocked', l: '卡住' }];
+  const OBJ_STATUS = [{ k: 'draft', l: '草稿' }, { k: 'active', l: '进行中' }, { k: 'done', l: '已达成' }, { k: 'dropped', l: '放弃' }];
   const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
 
   const byK = (list, k) => list.find(x => x.k === k);
@@ -499,12 +623,15 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   const rid = () => Math.random().toString(36).slice(2, 10);
   const nowISO = () => new Date().toISOString();
   const clone = o => JSON.parse(JSON.stringify(o));
+  const numOrNull = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : null; };
+  const fmtNum = n => n == null ? '' : (Math.round(n * 100) / 100).toLocaleString('zh-CN');
   const local = {
     get(k, d) { try { const v = localStorage.getItem('hub:' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
     set(k, v) { try { localStorage.setItem('hub:' + k, JSON.stringify(v)); } catch {} },
   };
 
-  const hashView = location.hash === '#all' ? 'all' : location.hash === '#today' ? 'today' : null;
+  const VIEWS = ['today', 'plan', 'all'];
+  const hashView = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : null;
   const state = {
     projects: [],
     status: 'loading',          // loading | ready | none | error
@@ -513,7 +640,9 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     groupBy: local.get('groupBy', 'stage'),
     showDone: local.get('showDone', false),
     showAllNext: false,
+    plan: { pid: local.get('planPid', null), form: null, dirty: false },
   };
+  if (!VIEWS.includes(state.view)) state.view = 'today';
   let DB = null;
 
   /* ---------- dates ---------- */
@@ -521,6 +650,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   const isoOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   const todayISO = () => isoOf(new Date());
   const tomorrowISO = () => { const d = new Date(); d.setDate(d.getDate() + 1); return isoOf(d); };
+  const quarterLabel = () => { const d = new Date(); return `${d.getFullYear()} Q${Math.floor(d.getMonth() / 3) + 1}`; };
   function parseISO(iso) {
     if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
     const [y, m, d] = iso.split('-').map(Number);
@@ -560,7 +690,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   const DOMAIN = /^[\w-]+(\.[\w-]+)*\.[a-z]{2,}(\/\S*)?$/i;
   function normLink(l) {
     let label = String((l && l.label) || '').trim();
-    let raw = String((l && l.url) || '').trim();
+    const raw = String((l && l.url) || '').trim();
     if (!raw) return null;
     const generic = !label || label === '链接';
     const m = raw.match(/https?:\/\/\S+/i);
@@ -598,9 +728,28 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
   }
   const taskSortKey = t => { const n = daysUntil(t.due); return n == null ? 1e6 : n; };
+  const sortTasks = list => list.slice().sort((a, b) => (a.done - b.done) || taskSortKey(a) - taskSortKey(b));
   const find = id => state.projects.find(p => p.id === id);
   const roleOf = p => byK(ROLES, p.roleType) || ROLES[0];
   const isTodayTask = t => { const n = daysUntil(t.due); return (n != null && n <= 0) || t.today === todayISO(); };
+  const initOf = (p, iid) => iid ? (p.initiatives || []).find(i => i.id === iid) : null;
+  function initCount(p, i) {
+    const ts = (p.tasks || []).filter(t => t.initiativeId === i.id);
+    return { total: ts.length, done: ts.filter(t => t.done).length };
+  }
+  function krPct(k) {
+    const t = numOrNull(k.target), c = numOrNull(k.current) ?? 0;
+    if (t == null || t <= 0) return null;
+    return Math.max(0, Math.min(100, Math.round(c / t * 100)));
+  }
+  function objProgress(p, o) {
+    const ks = (o.krs || []).map(krPct).filter(v => v != null);
+    if (ks.length) return { pct: Math.round(ks.reduce((s, v) => s + v, 0) / ks.length), basis: '按关键结果' };
+    const ids = new Set((p.initiatives || []).filter(i => i.objectiveId === o.id).map(i => i.id));
+    const ts = (p.tasks || []).filter(t => ids.has(t.initiativeId));
+    if (!ts.length) return { pct: null, basis: '' };
+    return { pct: Math.round(ts.filter(t => t.done).length / ts.length * 100), basis: '按待办完成' };
+  }
 
   /* ---------- render: today ---------- */
   function renderToday() {
@@ -645,7 +794,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     }).join('');
 
     if (!live.length) {
-      blocksEl.innerHTML = `<div class="today-empty"><h3>还没有公司</h3><p>先在「全部公司」里添加，再给每家公司加上待办和截止日期。</p></div>`;
+      blocksEl.innerHTML = `<div class="today-empty"><h3>还没有公司</h3><p>先在「全部公司」里添加，再到「规划」里拆小项目和待办。</p></div>`;
     } else if (!blocks.length) {
       blocksEl.innerHTML = `<div class="today-empty"><h3>今天没有到期的事</h3><p>${soon.length ? '可以从右边「接下来 3 天」里挑几件，点「今天做」提前处理。' : '也可以在下面直接加一件今天要做的事。'}</p></div>`;
     } else {
@@ -656,10 +805,11 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
           <ul class="tlist">${items.map(t => {
             const di = dueInfo(t.due);
             const pinned = !(di && (di.c === 'late' || di.t === '今天')) && t.today === today;
+            const ini = initOf(p, t.initiativeId);
             const id = `td-${p.id}-${t.id}`;
             return `<li class="trow">
               <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${state.canWrite ? '' : 'disabled'}>
-              <label for="${esc(id)}">${esc(t.text)}</label>
+              <div class="txt"><label for="${esc(id)}">${esc(t.text)}</label>${ini ? `<span class="itag">${esc(ini.title)}</span>` : ''}</div>
               ${pinned ? '<span class="pin">今天做</span>' : di ? `<span class="due ${di.c}">${di.t}</span>` : '<span></span>'}
               ${state.canWrite ? `<button class="mini" type="button" data-act="tomorrow" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}">推到明天</button>` : '<span></span>'}
             </li>`;
@@ -671,8 +821,9 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     $('#td-soon-cnt').textContent = soon.length ? `${soon.length} 条` : '';
     $('#td-soon').innerHTML = soon.length ? soon.map(({ p, t }) => {
       const di = dueInfo(t.due);
+      const ini = initOf(p, t.initiativeId);
       return `<li class="srow"><div><div class="t">${esc(t.text)}</div>
-        <div class="meta"><span class="tproj role-${roleOf(p).k}">${esc(p.name || '未命名')}</span>${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div></div>
+        <div class="meta"><span class="tproj role-${roleOf(p).k}">${esc(p.name || '未命名')}</span>${ini ? `<span class="itag">${esc(ini.title)}</span>` : ''}${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div></div>
         ${state.canWrite ? `<button class="mini" type="button" data-act="today" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}">今天做</button>` : '<span></span>'}
       </li>`;
     }).join('') : '<li class="none">未来 3 天没有到期的待办。</li>';
@@ -685,6 +836,190 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     }).join('') : '<li class="none">勾掉的事会出现在这里，取消勾选可以撤回。</li>';
 
     fillProjSelect($('#tq-proj'), live, ['#tq-text', '#tq-proj', '#tq-add']);
+  }
+
+  /* ---------- render: plan ---------- */
+  const W = () => state.canWrite;
+  function btns(isEdit, addLabel) {
+    return `<div class="inl-b">
+      <button class="btn primary sm" type="submit">${isEdit ? '保存' : addLabel || '添加'}</button>
+      <button class="btn sm" type="button" data-cancel>取消</button>
+      ${isEdit ? '<button class="btn sm danger" type="button" data-del>删除</button>' : ''}
+    </div>`;
+  }
+  function initOptions(p, sel, noneLabel) {
+    return `<option value="">${noneLabel}</option>` + (p.initiatives || []).map(i => `<option value="${esc(i.id)}" ${i.id === sel ? 'selected' : ''}>${esc(i.title)}</option>`).join('');
+  }
+  function formHTML(p, key) {
+    const [mode, kind, a, b] = key.split(':');
+    const isEdit = mode === 'edit';
+    const objs = p.objectives || [];
+    if (kind === 'obj') {
+      const o = isEdit ? objs.find(x => x.id === a) || {} : { period: quarterLabel(), status: 'active' };
+      return `<form class="inl" data-key="${esc(key)}">
+        <div class="inl-row three">
+          <label>目标<input id="pf-title" type="text" maxlength="100" value="${esc(o.title || '')}" placeholder="例如：黑五打出第一波销量"></label>
+          <label>周期<input id="pf-period" type="text" maxlength="20" value="${esc(o.period || '')}" placeholder="${quarterLabel()}"></label>
+          <label>状态<select id="pf-status">${OBJ_STATUS.map(s => `<option value="${s.k}" ${s.k === (o.status || 'active') ? 'selected' : ''}>${s.l}</option>`).join('')}</select></label>
+        </div>
+        ${isEdit ? '<p class="help">删除目标后，它下面的小项目和待办都会保留，移到「没挂目标的小项目」。</p>' : ''}
+        ${btns(isEdit, '添加目标')}
+      </form>`;
+    }
+    if (kind === 'kr') {
+      const o = objs.find(x => x.id === a) || {};
+      const k = isEdit ? (o.krs || []).find(x => x.id === b) || {} : {};
+      return `<form class="inl" data-key="${esc(key)}">
+        <div class="inl-row three">
+          <label>关键结果<input id="pf-title" type="text" maxlength="100" value="${esc(k.title || '')}" placeholder="例如：黑五期间成交订单"></label>
+          <label>目标值<input id="pf-target" type="number" step="any" value="${esc(k.target ?? '')}" placeholder="例如 30"></label>
+          <label>单位<input id="pf-unit" type="text" maxlength="10" value="${esc(k.unit || '')}" placeholder="单 / R$ / 个"></label>
+        </div>
+        ${btns(isEdit, '添加关键结果')}
+      </form>`;
+    }
+    if (kind === 'init') {
+      const i = isEdit ? (p.initiatives || []).find(x => x.id === a) || {} : { objectiveId: a === 'none' ? null : a };
+      return `<form class="inl" data-key="${esc(key)}">
+        <div class="inl-row three">
+          <label>小项目<input id="pf-title" type="text" maxlength="60" value="${esc(i.title || '')}" placeholder="例如：黑五促销"></label>
+          <label>完成日期<input id="pf-due" type="date" value="${esc(i.due || '')}"></label>
+          <label>属于哪个目标<select id="pf-obj"><option value="">不挂目标</option>${objs.map(o => `<option value="${esc(o.id)}" ${o.id === i.objectiveId ? 'selected' : ''}>${esc(o.title)}</option>`).join('')}</select></label>
+        </div>
+        ${isEdit ? '<p class="help">删除小项目后，里面的待办会保留，移到「未分类的待办」。</p>' : ''}
+        ${btns(isEdit, '添加小项目')}
+      </form>`;
+    }
+    if (kind === 'task') {
+      const t = isEdit ? (p.tasks || []).find(x => x.id === a) || {} : { initiativeId: a === 'none' ? null : a };
+      return `<form class="inl" data-key="${esc(key)}">
+        <div class="inl-row three">
+          <label>待办<input id="pf-title" type="text" maxlength="200" value="${esc(t.text || '')}" placeholder="拆到一天能做完的事"></label>
+          <label>哪天做<input id="pf-due" type="date" value="${esc(t.due || '')}"></label>
+          <label>小项目<select id="pf-init">${initOptions(p, t.initiativeId, '未分类')}</select></label>
+        </div>
+        ${btns(isEdit, '添加待办')}
+      </form>`;
+    }
+    return '';
+  }
+  const openOr = (p, key, label, cls) => state.plan.form === key
+    ? formHTML(p, key)
+    : (W() ? `<button class="add ${cls || ''}" type="button" data-open="${esc(key)}">${label}</button>` : '');
+
+  function ptaskRow(p, t, loose) {
+    if (state.plan.form === 'edit:task:' + t.id) return `<li>${formHTML(p, 'edit:task:' + t.id)}</li>`;
+    const id = `p-${p.id}-${t.id}`;
+    const dis = W() ? '' : 'disabled';
+    return `<li class="ptask ${t.done ? 'done' : ''} ${loose ? 'loose' : ''}">
+      <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${t.done ? 'checked' : ''} ${dis}>
+      <label for="${esc(id)}">${esc(t.text)}${t.due && !t.done ? (() => { const di = dueInfo(t.due); return di && di.c ? ` <span class="due ${di.c}">${di.t}</span>` : ''; })() : ''}</label>
+      <input type="date" value="${esc(t.due || '')}" data-tdue="${esc(t.id)}" aria-label="哪天做" ${dis}>
+      ${loose ? `<select data-move="${esc(t.id)}" aria-label="归到小项目" ${dis}>${initOptions(p, null, '归到小项目…')}</select>` : ''}
+      ${W() ? `<button class="mini" type="button" data-open="edit:task:${esc(t.id)}">改</button>` : '<span></span>'}
+    </li>`;
+  }
+  function initBlock(p, i) {
+    const ts = sortTasks((p.tasks || []).filter(t => t.initiativeId === i.id));
+    const c = { total: ts.length, done: ts.filter(t => t.done).length };
+    const pct = c.total ? Math.round(c.done / c.total * 100) : 0;
+    const head = state.plan.form === 'edit:init:' + i.id ? formHTML(p, 'edit:init:' + i.id) : `
+      <div class="init-h">
+        <span class="lvl ip">小项目</span>
+        ${W() ? `<button class="ttl init-title" type="button" data-open="edit:init:${esc(i.id)}">${esc(i.title)}</button>` : `<span class="init-title">${esc(i.title)}</span>`}
+        ${i.due ? `<span class="due ${(dueInfo(i.due) || {}).c || ''}">${md(i.due)}</span>` : '<span></span>'}
+        <span class="due mono">${c.done}/${c.total}</span>
+      </div>`;
+    return `<div class="init">
+      ${head}
+      <span class="bar ${pct === 100 ? 'ok' : ''}"><span style="width:${pct}%"></span></span>
+      ${ts.length ? `<ul class="ptasks">${ts.map(t => ptaskRow(p, t, false)).join('')}</ul>` : '<p class="empty-line">还没有待办。拆几件一天能做完的事。</p>'}
+      ${openOr(p, 'add:task:' + i.id, '＋ 待办')}
+    </div>`;
+  }
+  function objBlock(p, o, idx) {
+    const st = byK(OBJ_STATUS, o.status) || OBJ_STATUS[1];
+    const pr = objProgress(p, o);
+    const inits = (p.initiatives || []).filter(i => i.objectiveId === o.id);
+    const head = state.plan.form === 'edit:obj:' + o.id ? formHTML(p, 'edit:obj:' + o.id) : `
+      <div class="obj-h">
+        <span class="lvl">目标 ${idx + 1}</span>
+        ${W() ? `<button class="ttl obj-title" type="button" data-open="edit:obj:${esc(o.id)}">${esc(o.title)}</button>` : `<span class="obj-title">${esc(o.title)}</span>`}
+        <span class="obj-meta"><span class="st st-${st.k}">${st.l}</span>${o.period ? `<span class="mono">${esc(o.period)}</span>` : ''}</span>
+      </div>
+      <div class="obj-prog"><span class="bar ${pr.pct === 100 ? 'ok' : ''}"><span style="width:${pr.pct || 0}%"></span></span><span class="mono">${pr.pct == null ? '还没有进度' : pr.pct + '% · ' + pr.basis}</span></div>`;
+    const krs = (o.krs || []).map((k, ki) => {
+      const key = `edit:kr:${o.id}:${k.id}`;
+      if (state.plan.form === key) return `<li>${formHTML(p, key)}</li>`;
+      const pct = krPct(k);
+      return `<li class="krrow">
+        <span class="lvl kr">KR${ki + 1}</span>
+        ${W() ? `<button class="ttl" type="button" data-open="${esc(key)}">${esc(k.title)}</button>` : `<span>${esc(k.title)}</span>`}
+        <span class="kr-val"><input type="number" step="any" value="${esc(k.current ?? 0)}" data-kr="${esc(o.id)}:${esc(k.id)}" aria-label="当前值" ${W() ? '' : 'disabled'}> / <span class="tgt">${k.target == null || k.target === '' ? '目标待定' : esc(fmtNum(numOrNull(k.target)))}</span> ${esc(k.unit || '')}</span>
+        <span class="bar ${pct === 100 ? 'ok' : ''}"><span style="width:${pct || 0}%"></span></span>
+      </li>`;
+    }).join('');
+    return `<section class="obj">
+      ${head}
+      ${krs ? `<ul class="krs">${krs}</ul>` : ''}
+      ${openOr(p, 'add:kr:' + o.id, '＋ 关键结果')}
+      <div class="inits">${inits.map(i => initBlock(p, i)).join('')}</div>
+      ${openOr(p, 'add:init:' + o.id, '＋ 小项目')}
+    </section>`;
+  }
+  function renderPlan(force) {
+    if (!force && state.plan.form && state.view === 'plan') { state.plan.dirty = true; return; }
+    state.plan.dirty = false;
+    const host = $('#pl-main'), cos = $('#pl-cos'), facts = $('#pl-facts');
+    if (state.status !== 'ready') {
+      cos.innerHTML = ''; facts.innerHTML = '';
+      host.innerHTML = `<div class="today-empty"><h3>${state.status === 'loading' ? '正在载入…' : '暂时连不上数据'}</h3><p>这里会按「目标 → 关键结果 → 小项目 → 待办」展开每家公司的规划。</p></div>`;
+      return;
+    }
+    const list = sortProjects(state.projects.filter(isActive));
+    if (!list.length) {
+      cos.innerHTML = ''; facts.innerHTML = '';
+      host.innerHTML = `<div class="today-empty"><h3>还没有公司</h3><p>先点右上角「＋ 添加公司」。</p></div>`;
+      return;
+    }
+    if (!list.some(c => c.id === state.plan.pid)) state.plan.pid = list[0].id;
+    const p = find(state.plan.pid);
+    cos.innerHTML = list.map(c => `<button type="button" class="co role-${roleOf(c).k}" data-co="${esc(c.id)}" aria-pressed="${c.id === p.id}"><span class="co-n">${esc(c.name || '未命名')}</span><span class="co-r">${esc(roleOf(c).l)}</span></button>`).join('');
+
+    const objs = p.objectives || [];
+    const objIds = new Set(objs.map(o => o.id));
+    const initIds = new Set((p.initiatives || []).map(i => i.id));
+    const orphans = (p.initiatives || []).filter(i => !objIds.has(i.objectiveId));
+    const loose = sortTasks((p.tasks || []).filter(t => !initIds.has(t.initiativeId)));
+    const looseOpen = loose.filter(t => !t.done).length;
+
+    host.innerHTML = `
+      <div class="plan-head"><h2>${esc(p.name || '未命名')}</h2><span class="period mono">${quarterLabel()}</span></div>
+      ${objs.length ? '' : `<p class="empty-line">${roleOf(p).k === 'lead' || roleOf(p).k === 'partner' ? '还没有目标。先写 1–3 个这个季度要达成的结果。' : '你在这里是「' + esc(roleOf(p).l) + '」，不一定需要 OKR，直接用下面的小项目分类就够了。'}</p>`}
+      ${objs.map((o, i) => objBlock(p, o, i)).join('')}
+      ${openOr(p, 'add:obj:' + p.id, '＋ 加一个目标', 'big')}
+      <section class="loose">
+        <div class="loose-h"><h3>没挂目标的小项目</h3><span class="hint">手续、日常运营这类事放这里</span></div>
+        ${orphans.length ? `<div class="inits">${orphans.map(i => initBlock(p, i)).join('')}</div>` : ''}
+        ${openOr(p, 'add:init:none', '＋ 小项目')}
+      </section>
+      <section class="loose">
+        <div class="loose-h"><h3>未分类的待办</h3><span class="cnt">${looseOpen}</span><span class="hint">用下拉框把它们归到小项目里</span></div>
+        ${loose.length ? `<ul class="ptasks">${loose.map(t => ptaskRow(p, t, true)).join('')}</ul>` : '<p class="empty-line">全部待办都归好类了。</p>'}
+        ${openOr(p, 'add:task:none', '＋ 待办')}
+      </section>`;
+
+    const ms = p.milestone || {};
+    const mi = msInfo(ms.date);
+    facts.innerHTML = `<div class="panel-h"><h2>这家公司</h2>${W() ? `<button class="linkbtn" type="button" data-edit="${esc(p.id)}">编辑</button>` : ''}</div>
+      <div class="side-facts">
+        <div><span class="k">我的身份</span><br><span class="tproj role-${roleOf(p).k}">${esc(roleOf(p).l)}</span> ${esc(p.role || '')}</div>
+        <div><span class="k">阶段</span><br>${esc((byK(ALL_STAGES, p.stage) || STAGES[0]).l)}${p.stageNote ? ' · ' + esc(p.stageNote) : ''}</div>
+        ${ms.title || ms.date ? `<div><span class="k">下一个节点</span><br>${esc(ms.title || '')}${mi ? ` <span class="due ${mi.c}">${mi.t}</span>` : ''}</div>` : ''}
+      </div>`;
+
+    const f = host.querySelector('form.inl');
+    if (f) { const first = f.querySelector('input, select'); if (first) first.focus(); }
   }
 
   /* ---------- render: summary ---------- */
@@ -738,6 +1073,15 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     const mi = msInfo(ms.date);
     return `<div class="ms"><span class="ms-t"><small>下一个节点</small>${esc(ms.title || '未命名节点')}</span>${mi ? `<span class="ms-d mono ${mi.c}">${mi.t}</span>` : ''}</div>`;
   }
+  function okrMini(p) {
+    const objs = (p.objectives || []).filter(o => o.status !== 'dropped').slice(0, 3);
+    const inits = p.initiatives || [];
+    if (!objs.length && !inits.length) return '';
+    return `<div class="okr-mini">
+      ${objs.map((o, i) => { const pr = objProgress(p, o); return `<div class="om"><span class="om-t"><b>目标 ${i + 1}</b>${esc(o.title)}</span><span class="om-p mono">${pr.pct == null ? '—' : pr.pct + '%'}</span><span class="bar ${pr.pct === 100 ? 'ok' : ''}"><span style="width:${pr.pct || 0}%"></span></span></div>`; }).join('')}
+      ${inits.length ? `<div class="ichips">${inits.map(i => { const c = initCount(p, i); return `<span class="ichip">${esc(i.title)} <b class="mono">${c.done}/${c.total}</b></span>`; }).join('')}</div>` : ''}
+    </div>`;
+  }
   function taskRow(p, t) {
     const di = dueInfo(t.due);
     const id = `c-${p.id}-${t.id}`;
@@ -759,7 +1103,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     return `<article class="card ${p.stage === 'done' ? 'is-done' : ''} ${p.stage === 'paused' ? 'is-paused' : ''}">
       <div class="card-h">
         <div class="card-title">
-          <button class="pname" type="button" data-edit="${esc(p.id)}">${esc(p.name || '未命名')}</button>
+          <button class="pname" type="button" data-goplan="${esc(p.id)}">${esc(p.name || '未命名')}</button>
           <span class="pill h-${health.k}">${health.l}</span>
         </div>
         ${p.tagline ? `<p class="tagline">${esc(p.tagline)}</p>` : ''}
@@ -769,6 +1113,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
         ${p.roleNote ? `<p class="role-note">${esc(p.roleNote)}</p>` : ''}
       </div>
       ${stageBlock(p)}
+      ${okrMini(p)}
       ${msBlock(p)}
       ${open.length
         ? `<ul class="tasks">${open.slice(0, 3).map(t => taskRow(p, t)).join('')}</ul>${open.length > 3 ? `<span class="more">还有 ${open.length - 3} 条待办</span>` : ''}`
@@ -777,7 +1122,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
         ${links ? `<div class="links">${links}</div>` : ''}
         <div class="row">
           <span>${focus ? focus.l + ' · ' : ''}${doneN}/${(p.tasks || []).length} 已完成${upd ? ' · ' + upd + '更新' : ''}</span>
-          ${state.canWrite ? `<button class="linkbtn" type="button" data-edit="${esc(p.id)}">编辑</button>` : ''}
+          <span class="acts"><button class="linkbtn" type="button" data-goplan="${esc(p.id)}">规划</button>${state.canWrite ? `<button class="linkbtn" type="button" data-edit="${esc(p.id)}">编辑</button>` : ''}</span>
         </div>
       </div>
     </article>`;
@@ -828,7 +1173,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     rows.sort((a, b) => taskSortKey(a.t) - taskSortKey(b.t) || focusRank(a.p.focus) - focusRank(b.p.focus));
     $('#next-cnt').textContent = rows.length ? `${rows.length} 条` : '';
     if (state.status !== 'ready') { listEl.innerHTML = `<li class="next-empty">载入后显示所有公司的待办，按截止日期排好。</li>`; }
-    else if (!rows.length) { listEl.innerHTML = `<li class="next-empty">没有待办。在公司卡片里或下方加一条。</li>`; }
+    else if (!rows.length) { listEl.innerHTML = `<li class="next-empty">没有待办。在「规划」里拆小项目和待办，或在下方加一条。</li>`; }
     else {
       const limit = state.showAllNext ? rows.length : 10;
       const secs = [
@@ -846,11 +1191,12 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
           if (count >= limit) break;
           count++;
           const di = dueInfo(t.due);
+          const ini = initOf(p, t.initiativeId);
           const id = `n-${p.id}-${t.id}`;
           out += `<li class="todo">
             <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${state.canWrite ? '' : 'disabled'}>
             <div><label for="${esc(id)}">${esc(t.text)}</label>
-              <div class="meta"><span class="tproj role-${roleOf(p).k}">${esc(p.name || '未命名')}</span>${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div>
+              <div class="meta"><span class="tproj role-${roleOf(p).k}">${esc(p.name || '未命名')}</span>${ini ? `<span class="itag">${esc(ini.title)}</span>` : ''}${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div>
             </div>
           </li>`;
         }
@@ -863,10 +1209,10 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 
   function render() {
     paintDates();
-    $('#view-today').hidden = state.view !== 'today';
-    $('#view-all').hidden = state.view !== 'all';
+    VIEWS.forEach(v => { $('#view-' + v).hidden = state.view !== v; });
     document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
     renderToday();
+    renderPlan(false);
     renderSummary();
     renderProjects();
     renderNext();
@@ -875,6 +1221,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     $('#btn-new').hidden = !state.canWrite || state.status !== 'ready';
     $('#ro').hidden = state.canWrite || state.status !== 'ready';
   }
+  function setView(v) { state.view = v; local.set('view', v); state.plan.form = null; render(); window.scrollTo(0, 0); }
 
   /* ---------- writes ---------- */
   const queues = {};
@@ -896,23 +1243,20 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     if (e && e.code === 'invalid_argument' && state.canWrite) { state.canWrite = false; render(); }
     toast(errText(e));
   }
-  function patchTask(pid, tid, patch) {
+  // Edit a company's plan (objectives, initiatives, tasks) from its latest state, one write at a time.
+  function mutate(pid, fn) {
     const ref = DB.collection('projects').doc(pid);
     return queueWrite(pid, () => {
       const p = find(pid); if (!p) return;
-      const tasks = clone(p.tasks || []).map(t => t.id === tid ? { ...t, ...patch } : t);
-      return ref.update({ tasks, updatedAt: nowISO() });
+      const d = { objectives: clone(p.objectives || []), initiatives: clone(p.initiatives || []), tasks: clone(p.tasks || []) };
+      fn(d);
+      return ref.update({ ...d, updatedAt: nowISO() });
     }).catch(onWriteError);
   }
+  const patchTask = (pid, tid, patch) => mutate(pid, d => { const t = d.tasks.find(x => x.id === tid); if (t) Object.assign(t, patch); });
   const setTask = (pid, tid, done) => patchTask(pid, tid, { done, doneAt: done ? todayISO() : null });
-  function addTask(pid, text, due) {
-    const ref = DB.collection('projects').doc(pid);
-    return queueWrite(pid, () => {
-      const p = find(pid); if (!p) return;
-      const tasks = clone(p.tasks || []);
-      tasks.push({ id: rid(), text, done: false, due: due || null, createdAt: todayISO() });
-      return ref.update({ tasks, updatedAt: nowISO() });
-    });
+  function addTask(pid, text, due, initiativeId) {
+    return mutate(pid, d => { d.tasks.push({ id: rid(), text, done: false, due: due || null, initiativeId: initiativeId || null, createdAt: todayISO() }); });
   }
 
   /* ---------- toast ---------- */
@@ -926,28 +1270,118 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     toastTimer = setTimeout(() => { el.hidden = true; }, action ? 6000 : 3500);
   }
 
-  /* ---------- editor ---------- */
+  /* ---------- plan view interactions ---------- */
+  const planEl = $('#view-plan');
+  let planDelArm = null;
+  function openForm(key) { state.plan.form = key; clearTimeout(planDelArm); planDelArm = null; renderPlan(true); }
+  function closeForm() { state.plan.form = null; clearTimeout(planDelArm); planDelArm = null; renderPlan(true); }
+  function planSave(form) {
+    const pid = state.plan.pid;
+    const key = form.dataset.key;
+    const [mode, kind, a, b] = key.split(':');
+    const v = id => (form.querySelector('#' + id)?.value ?? '').trim();
+    const title = v('pf-title');
+    if (!title) { form.querySelector('#pf-title')?.focus(); return; }
+    mutate(pid, d => {
+      if (kind === 'obj') {
+        const fields = { title, period: v('pf-period'), status: v('pf-status') || 'active' };
+        if (mode === 'add') d.objectives.push({ id: rid(), ...fields, krs: [] });
+        else Object.assign(d.objectives.find(o => o.id === a) || {}, fields);
+      } else if (kind === 'kr') {
+        const o = d.objectives.find(x => x.id === a); if (!o) return;
+        o.krs = o.krs || [];
+        const fields = { title, target: numOrNull(v('pf-target')), unit: v('pf-unit') };
+        if (mode === 'add') o.krs.push({ id: rid(), ...fields, current: 0 });
+        else Object.assign(o.krs.find(k => k.id === b) || {}, fields);
+      } else if (kind === 'init') {
+        const fields = { title, due: v('pf-due') || null, objectiveId: v('pf-obj') || null };
+        if (mode === 'add') d.initiatives.push({ id: rid(), ...fields });
+        else Object.assign(d.initiatives.find(i => i.id === a) || {}, fields);
+      } else if (kind === 'task') {
+        const fields = { text: title, due: v('pf-due') || null, initiativeId: v('pf-init') || null };
+        if (mode === 'add') d.tasks.push({ id: rid(), ...fields, done: false, createdAt: todayISO() });
+        else Object.assign(d.tasks.find(t => t.id === a) || {}, fields);
+      }
+    });
+    if (mode === 'add' && kind === 'task') {
+      // keep the form open for the next item in the same 小项目
+      form.querySelector('#pf-title').value = '';
+      form.querySelector('#pf-title').focus();
+      toast('已添加');
+      return;
+    }
+    closeForm();
+  }
+  function planDelete(key) {
+    const pid = state.plan.pid;
+    const [, kind, a, b] = key.split(':');
+    mutate(pid, d => {
+      if (kind === 'obj') { d.objectives = d.objectives.filter(o => o.id !== a); d.initiatives.forEach(i => { if (i.objectiveId === a) i.objectiveId = null; }); }
+      if (kind === 'kr') { const o = d.objectives.find(x => x.id === a); if (o) o.krs = (o.krs || []).filter(k => k.id !== b); }
+      if (kind === 'init') { d.initiatives = d.initiatives.filter(i => i.id !== a); d.tasks.forEach(t => { if (t.initiativeId === a) t.initiativeId = null; }); }
+      if (kind === 'task') d.tasks = d.tasks.filter(t => t.id !== a);
+    });
+    closeForm();
+    toast('已删除');
+  }
+  planEl.addEventListener('click', e => {
+    const co = e.target.closest('[data-co]');
+    if (co) { state.plan.pid = co.dataset.co; local.set('planPid', state.plan.pid); state.plan.form = null; renderPlan(true); return; }
+    const op = e.target.closest('[data-open]');
+    if (op && W()) { openForm(op.dataset.open); return; }
+    if (e.target.closest('[data-cancel]')) { closeForm(); return; }
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      const key = del.closest('form.inl').dataset.key;
+      if (!planDelArm) {
+        del.classList.add('armed'); del.textContent = '再点一次确认删除';
+        planDelArm = setTimeout(() => { planDelArm = null; del.classList.remove('armed'); del.textContent = '删除'; }, 4000);
+        return;
+      }
+      clearTimeout(planDelArm); planDelArm = null;
+      planDelete(key);
+    }
+  });
+  planEl.addEventListener('submit', e => {
+    const f = e.target.closest('form.inl'); if (!f) return;
+    e.preventDefault();
+    if (DB) planSave(f);
+  });
+  planEl.addEventListener('keydown', e => { if (e.key === 'Escape' && e.target.closest('form.inl')) { e.preventDefault(); closeForm(); } });
+  planEl.addEventListener('change', e => {
+    if (!DB) return;
+    const pid = state.plan.pid;
+    const kr = e.target.closest('[data-kr]');
+    if (kr) {
+      const [oid, kid] = kr.dataset.kr.split(':');
+      const val = numOrNull(kr.value) ?? 0;
+      mutate(pid, d => { const o = d.objectives.find(x => x.id === oid); const k = o && (o.krs || []).find(x => x.id === kid); if (k) k.current = val; });
+      return;
+    }
+    const due = e.target.closest('[data-tdue]');
+    if (due) { patchTask(pid, due.dataset.tdue, { due: due.value || null }); return; }
+    const mv = e.target.closest('[data-move]');
+    if (mv && mv.value) {
+      const name = (initOf(find(pid), mv.value) || {}).title || '';
+      patchTask(pid, mv.dataset.move, { initiativeId: mv.value });
+      toast(`已归到「${name}」`);
+    }
+  });
+
+  /* ---------- editor (company basics) ---------- */
   const dlg = $('#editor');
   let draft = null, draftIsNew = false, delArmed = null;
+  const BASIC = ['name', 'tagline', 'stage', 'stageNote', 'roleType', 'role', 'roleNote', 'focus', 'health', 'milestone', 'links', 'notes'];
 
   function blankProject() {
     return { name: '', tagline: '', stage: 'build', stageNote: '', roleType: 'lead', role: '', roleNote: '',
-      focus: 'keep', health: 'ok', milestone: { title: '', date: '' }, tasks: [], links: [], notes: '' };
+      focus: 'keep', health: 'ok', milestone: { title: '', date: '' }, links: [], notes: '' };
   }
   function chipGroup(name, list, val, extraCls) {
     return `<div class="chips">${list.map(o => `
       <label class="chip ${extraCls ? extraCls + ' role-' + o.k : ''}" ${o.d ? `title="${esc(o.d)}"` : ''}>
         <input type="radio" name="${name}" id="${name}-${o.k}" value="${o.k}" ${o.k === val ? 'checked' : ''}><span>${o.l}</span>
       </label>`).join('')}</div>`;
-  }
-  function edTaskRows() {
-    return draft.tasks.map(t => `
-      <li class="ed-task" data-tid="${esc(t.id)}">
-        <input type="checkbox" id="e-done-${esc(t.id)}" aria-label="已完成" ${t.done ? 'checked' : ''}>
-        <input class="field" type="text" id="e-text-${esc(t.id)}" value="${esc(t.text)}" placeholder="待办内容" maxlength="200">
-        <input class="field" type="date" id="e-due-${esc(t.id)}" value="${esc(t.due || '')}" aria-label="截止日期">
-        <button class="x" type="button" data-rm="${esc(t.id)}" aria-label="删除这条">×</button>
-      </li>`).join('');
   }
   function renderEditor() {
     const d = draft;
@@ -985,10 +1419,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
         </div>
       </fieldset>
 
-      <fieldset class="fs"><legend>待办</legend>
-        <ul class="ed-tasks" id="ed-tasks">${edTaskRows()}</ul>
-        <div><button class="btn" type="button" id="ed-addtask">＋ 加一条待办</button></div>
-      </fieldset>
+      ${draftIsNew ? '' : `<div class="ed-note"><span>目标、小项目和待办在「规划」页里管理。</span><button class="btn sm" type="button" data-goplan="${esc(d.id)}">去规划页</button></div>`}
 
       <label class="lf"><span class="fl">链接（每行一个，例如：官网：1999joias.com）</span>
         <textarea class="field" id="f-links" rows="3" placeholder="后台：https://admin.shopify.com/...">${esc((d.links || []).map(normLink).filter(Boolean).map(l => l.label + '：' + l.url).join('\n'))}</textarea>
@@ -998,17 +1429,8 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       </label>
       <p class="ed-err" id="ed-err" hidden></p>`;
   }
-  function syncTasks() {
-    draft.tasks = draft.tasks.map(t => ({
-      ...t,
-      done: $('#e-done-' + CSS.escape(t.id))?.checked ?? t.done,
-      text: ($('#e-text-' + CSS.escape(t.id))?.value ?? t.text).trim(),
-      due: $('#e-due-' + CSS.escape(t.id))?.value || null,
-    })).map(t => ({ ...t, doneAt: t.done ? (t.doneAt || todayISO()) : null }));
-  }
   function readRadio(name, fallback) { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : fallback; }
   function syncDraft() {
-    syncTasks();
     draft.name = $('#f-name').value.trim();
     draft.tagline = $('#f-tagline').value.trim();
     draft.stage = readRadio('f-stage', 'build');
@@ -1021,13 +1443,11 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     draft.milestone = { title: $('#f-ms-title').value.trim(), date: $('#f-ms-date').value || '' };
     draft.links = parseLinkLines($('#f-links').value);
     draft.notes = $('#f-notes').value.trim();
-    draft.tasks = draft.tasks.filter(t => t.text);
   }
   function openEditor(id) {
     const p = id ? find(id) : null;
     draftIsNew = !p;
     draft = p ? Object.assign(blankProject(), clone(p)) : blankProject();
-    if (!Array.isArray(draft.tasks)) draft.tasks = [];
     renderEditor();
     if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
     setTimeout(() => { if (draftIsNew) $('#f-name')?.focus(); }, 30);
@@ -1036,32 +1456,25 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   function resetDel() { clearTimeout(delArmed); delArmed = null; const b = $('#ed-del'); b.classList.remove('armed'); b.textContent = '删除'; }
   function showEdErr(msg) { const el = $('#ed-err'); el.textContent = msg; el.hidden = !msg; }
 
-  $('#ed-body').addEventListener('click', e => {
-    const rm = e.target.closest('[data-rm]');
-    if (rm) { syncTasks(); draft.tasks = draft.tasks.filter(t => t.id !== rm.dataset.rm); $('#ed-tasks').innerHTML = edTaskRows(); return; }
-    if (e.target.closest('#ed-addtask')) {
-      syncTasks();
-      const t = { id: rid(), text: '', done: false, due: null, createdAt: todayISO() };
-      draft.tasks.push(t);
-      $('#ed-tasks').innerHTML = edTaskRows();
-      $('#e-text-' + CSS.escape(t.id))?.focus();
-    }
-  });
   $('#ed-form').addEventListener('submit', async e => {
     e.preventDefault();
     if (!draft || !DB) return;
     syncDraft();
     if (!draft.name) { showEdErr('先填名称再保存。'); $('#f-name').focus(); return; }
-    const { id, ...data } = draft;
+    const data = {};
+    BASIC.forEach(k => { data[k] = draft[k]; });
     data.updatedAt = nowISO();
-    if (draftIsNew) data.createdAt = data.updatedAt;
-    const ref = draftIsNew ? DB.collection('projects').doc() : DB.collection('projects').doc(id);
+    const isNew = draftIsNew;
+    const ref = isNew ? DB.collection('projects').doc() : DB.collection('projects').doc(draft.id);
     const btn = $('#ed-save');
     btn.disabled = true; btn.textContent = '保存中…';
     try {
-      await queueWrite(ref.id, () => ref.set(data));
+      // existing companies: only touch the basic fields, so plan edits made meanwhile are never overwritten
+      if (isNew) await queueWrite(ref.id, () => ref.set({ ...data, createdAt: data.updatedAt, objectives: [], initiatives: [], tasks: [] }));
+      else await queueWrite(ref.id, () => ref.update(data));
       closeEditor();
-      toast(draftIsNew ? '已添加' : '已保存');
+      toast(isNew ? '已添加' : '已保存');
+      if (isNew) { state.plan.pid = ref.id; local.set('planPid', ref.id); }
     } catch (err) {
       showEdErr(errText(err));
     } finally {
@@ -1093,7 +1506,9 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   /* ---------- page events ---------- */
   document.addEventListener('click', e => {
     const v = e.target.closest('#tabs button');
-    if (v) { state.view = v.dataset.view; local.set('view', state.view); render(); return; }
+    if (v) { setView(v.dataset.view); return; }
+    const gp = e.target.closest('[data-goplan]');
+    if (gp) { closeEditor(); state.plan.pid = gp.dataset.goplan; local.set('planPid', state.plan.pid); setView('plan'); return; }
     const ed = e.target.closest('[data-edit]');
     if (ed && state.canWrite) { openEditor(ed.dataset.edit); return; }
     if (e.target.closest('#btn-new, [data-new]')) { openEditor(null); return; }
@@ -1132,8 +1547,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       $(textSel).value = '';
       toast('已添加');
       return true;
-    } catch (err) { onWriteError(err); return false; }
-    finally { $(btnSel).disabled = !state.canWrite; $(textSel).focus(); }
+    } finally { $(btnSel).disabled = !state.canWrite; $(textSel).focus(); }
   }
   $('#quick').addEventListener('submit', async e => {
     e.preventDefault();
