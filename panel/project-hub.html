@@ -4,8 +4,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
 <style>
-/* Layout: a working desk. Left = every project as a card (grouped by stage / role / focus),
-   right = one merged "what's next" list across all projects. Stacks on phones, list first. */
+/* Layout: two views on one desk. "今天" = today's list across every company, grouped by company,
+   with the next three days and today's finished items beside it. "全部公司" = every company as a
+   card (stage, my role, milestone, to-dos) plus one merged to-do list. Phones stack to one column. */
 :root {
   --bg: #eef1f4;
   --surface: #ffffff;
@@ -74,12 +75,17 @@ button { cursor: pointer; }
 .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 
 .wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 20px; }
+.view { display: grid; gap: 20px; }
 
 /* ---------- top bar ---------- */
 .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }
 .top h1 { font-family: var(--f-display); font-size: 28px; line-height: 1.2; margin: 0; letter-spacing: .02em; text-wrap: balance; }
 .top .date { color: var(--muted); margin: 4px 0 0; }
 .top-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface); }
+.tabs button { border: 0; background: transparent; padding: 7px 16px; color: var(--muted); font-weight: 500; }
+.tabs button + button { border-left: 1px solid var(--line); }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .btn {
   border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
   padding: 7px 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;
@@ -92,7 +98,69 @@ button { cursor: pointer; }
 .btn:disabled { opacity: .55; cursor: default; }
 .badge-ro { font-size: 12px; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 10px; }
 
-/* ---------- summary ---------- */
+/* ---------- today view ---------- */
+.today-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 28px; }
+.bigdate { display: flex; align-items: flex-end; gap: 12px; }
+.bigdate .d { font-family: var(--f-display); font-size: 56px; line-height: .9; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bigdate .m { display: grid; line-height: 1.3; padding-bottom: 2px; }
+.bigdate .m b { font-size: 16px; }
+.bigdate .m span { color: var(--muted); font-size: 13px; }
+.tcount { display: flex; gap: 18px; flex-wrap: wrap; padding-bottom: 4px; }
+.tcount .c { display: grid; }
+.tcount .c .n { font-family: var(--f-mono); font-size: 22px; font-weight: 500; line-height: 1.1; }
+.tcount .c .l { color: var(--muted); font-size: 12px; }
+.tcount .c.alert .n { color: var(--bad); }
+.tcount .c.good .n { color: var(--ok); }
+
+.ms-strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.ms-chip { display: inline-flex; gap: 8px; align-items: baseline; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 13px; min-width: 0; max-width: 100%; }
+.ms-chip .who { font-weight: 700; color: var(--rc); }
+.ms-chip .what { overflow-wrap: anywhere; }
+.ms-chip .when { font-family: var(--f-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ms-chip .when.soon { color: var(--risk); }
+.ms-chip .when.late { color: var(--bad); }
+
+.today-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.today-main { display: grid; gap: 14px; min-width: 0; }
+.tblock { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+.tblock-h { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tblock-h .name { font-family: var(--f-display); font-size: 17px; font-weight: 700; }
+.tblock-h .rtag { font-size: 12px; font-weight: 700; color: var(--rc); background: var(--rs); border-radius: 4px; padding: 1px 7px; letter-spacing: .04em; }
+.tblock-h .cnt { margin-left: auto; font-family: var(--f-mono); font-size: 12px; color: var(--faint); }
+.tlist { list-style: none; margin: 0; padding: 4px 16px 8px; display: grid; }
+.trow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: start; padding: 9px 0; }
+.trow + .trow { border-top: 1px solid var(--line); }
+.trow input { margin: 4px 0 0; accent-color: var(--accent); width: 17px; height: 17px; }
+.trow label { cursor: pointer; font-size: 15px; overflow-wrap: anywhere; }
+.trow .due { padding-top: 3px; }
+.mini { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font-size: 12px; padding: 1px 8px; color: var(--muted); white-space: nowrap; }
+.mini:hover { color: var(--accent); border-color: var(--accent); }
+.pin { font-size: 11px; color: var(--accent); white-space: nowrap; padding-top: 3px; }
+
+.today-empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px 22px; display: grid; gap: 6px; }
+.today-empty h3 { margin: 0; font-family: var(--f-display); font-size: 18px; }
+.today-empty p { margin: 0; color: var(--muted); }
+
+.tquick { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; display: grid; grid-template-columns: minmax(0, 1fr) 160px auto; gap: 8px; align-items: center; }
+.tquick h3 { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; }
+
+.side { display: grid; gap: 14px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel-h { padding: 12px 16px 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.panel-h h2 { margin: 0; font-size: 14px; }
+.panel-h .cnt { font-family: var(--f-mono); font-size: 12px; color: var(--faint); }
+.slist { list-style: none; margin: 0; padding: 0 16px 10px; display: grid; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 7px 0; align-items: start; }
+.srow + .srow { border-top: 1px solid var(--line); }
+.srow .t { font-size: 13px; overflow-wrap: anywhere; }
+.srow .meta { display: flex; gap: 8px; align-items: center; margin-top: 2px; flex-wrap: wrap; }
+.drow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; padding: 6px 0; align-items: start; }
+.drow + .drow { border-top: 1px solid var(--line); }
+.drow input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; }
+.drow label { font-size: 13px; color: var(--faint); text-decoration: line-through; cursor: pointer; overflow-wrap: anywhere; }
+.slist .none { color: var(--faint); font-size: 13px; padding: 2px 0 6px; }
+
+/* ---------- summary (all view) ---------- */
 .summary {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 0;
@@ -113,7 +181,7 @@ button { cursor: pointer; }
 .rolekeys .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 .rolekeys b { font-family: var(--f-mono); font-weight: 500; }
 
-/* ---------- main grid ---------- */
+/* ---------- all view grid ---------- */
 .main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
@@ -131,7 +199,7 @@ button { cursor: pointer; }
 .group-h .hint { color: var(--faint); font-size: 12px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
 
-/* ---------- project card ---------- */
+/* ---------- company card ---------- */
 .card {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 16px 16px 12px; display: grid; gap: 12px; align-content: start; min-width: 0;
@@ -172,7 +240,6 @@ button { cursor: pointer; }
 .track-labels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; font-size: 11px; color: var(--faint); }
 .track-labels span.now { color: var(--accent); font-weight: 700; }
 .stage-note { margin: 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
-.stage-note b { color: var(--ink); font-weight: 500; }
 .off-tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; margin-right: 6px; }
 
 .ms { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 13px; border-top: 1px dashed var(--line); padding-top: 10px; flex-wrap: wrap; }
@@ -192,13 +259,14 @@ button { cursor: pointer; }
 .more { font-size: 12px; color: var(--faint); padding-left: 23px; }
 .no-tasks { font-size: 13px; color: var(--faint); margin: 0; }
 
-.card-f { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding-top: 8px; font-size: 12px; color: var(--faint); flex-wrap: wrap; }
-.card-f .links { display: flex; gap: 10px; flex-wrap: wrap; }
+.card-f { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; font-size: 12px; color: var(--faint); }
+.card-f .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card-f .links { display: flex; gap: 4px 12px; flex-wrap: wrap; }
 .card-f a { color: var(--accent); text-decoration: none; }
 .card-f a:hover { text-decoration: underline; }
 .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); font-size: 12px; }
 
-/* ---------- next-up list ---------- */
+/* ---------- merged to-do list (all view) ---------- */
 .next { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); display: grid; min-width: 0; }
 .next-h { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .next-h h2 { margin: 0; font-size: 15px; }
@@ -216,10 +284,10 @@ button { cursor: pointer; }
 .quick { border-top: 1px solid var(--line); padding: 12px 16px 14px; display: grid; gap: 8px; }
 .quick h3 { margin: 0; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .04em; }
 .quick-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
-.field, .quick input, .quick select {
+.field, .quick input, .quick select, .tquick input, .tquick select {
   border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 9px; min-width: 0; width: 100%;
 }
-.quick button { white-space: nowrap; }
+.quick button, .tquick button { white-space: nowrap; }
 
 /* ---------- empty / status ---------- */
 .empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 28px 22px; display: grid; gap: 10px; justify-items: start; }
@@ -250,7 +318,6 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 .chip input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chip.role-chip input:checked + span { border-color: var(--rc); background: var(--rs); color: var(--rc); }
-.help { font-size: 12px; color: var(--faint); margin: 0; }
 .ed-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .ed-task { display: grid; grid-template-columns: auto minmax(0, 1fr) 140px auto; gap: 8px; align-items: center; }
 .ed-task input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
@@ -268,7 +335,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 .toast button { border: 0; background: none; color: var(--accent-soft); font-weight: 700; padding: 0; }
 
 @media (max-width: 960px) {
-  .main { grid-template-columns: minmax(0, 1fr); }
+  .main, .today-grid { grid-template-columns: minmax(0, 1fr); }
   .next { position: static; order: -1; }
   .next-list { max-height: none; }
   .summary { grid-template-columns: minmax(0, 1fr); }
@@ -276,6 +343,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 }
 @media (max-width: 560px) {
   .top h1 { font-size: 24px; }
+  .bigdate .d { font-size: 46px; }
   .stat { padding: 12px 14px; min-width: 50%; flex-basis: 50%; }
   .stat + .stat { border-left: 0; }
   .stat:nth-child(even) { border-left: 1px solid var(--line); }
@@ -284,6 +352,10 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   .row2 { grid-template-columns: minmax(0, 1fr); }
   .ed-task { grid-template-columns: auto minmax(0, 1fr) auto; }
   .ed-task input[type="date"] { grid-column: 2 / 3; }
+  .trow { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .trow .mini { grid-column: 2 / 3; justify-self: start; }
+  .tquick { grid-template-columns: minmax(0, 1fr) auto; }
+  .tquick input { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .card { transition: border-color .15s ease; }
@@ -298,55 +370,91 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       <p class="date" id="today">&nbsp;</p>
     </div>
     <div class="top-actions">
+      <div class="tabs" id="tabs" role="group" aria-label="视图">
+        <button type="button" data-view="today">今天</button>
+        <button type="button" data-view="all">全部公司</button>
+      </div>
       <span class="badge-ro" id="ro" hidden>只读</span>
-      <button class="btn primary" id="btn-new" type="button">＋ 新建项目</button>
+      <button class="btn primary" id="btn-new" type="button">＋ 添加公司</button>
     </div>
   </header>
 
-  <section class="summary" id="summary" aria-label="总览"></section>
-
-  <div class="main">
-    <section aria-label="项目">
-      <div class="toolbar">
-        <div>
-          <span class="lbl">分组</span>
-          <div class="seg" id="groupby" role="group" aria-label="分组方式">
-            <button type="button" data-g="stage">按阶段</button>
-            <button type="button" data-g="role">按我的定位</button>
-            <button type="button" data-g="focus">按投入度</button>
-            <button type="button" data-g="none">不分组</button>
-          </div>
-        </div>
-        <label class="toggle" for="showdone"><input type="checkbox" id="showdone"> 显示已结束的项目</label>
+  <!-- ===== 今天 ===== -->
+  <section class="view" id="view-today" aria-label="今天要做">
+    <div class="today-head">
+      <div class="bigdate"><span class="d" id="td-day">&nbsp;</span><span class="m"><b id="td-month">&nbsp;</b><span id="td-week">&nbsp;</span></span></div>
+      <div class="tcount" id="td-count"></div>
+    </div>
+    <div class="ms-strip" id="td-ms"></div>
+    <div class="today-grid">
+      <div class="today-main">
+        <div id="td-blocks"></div>
+        <form class="tquick" id="t-quick" autocomplete="off">
+          <h3>今天还要做一件事</h3>
+          <input id="tq-text" type="text" placeholder="例如：给会计打电话" maxlength="200">
+          <select id="tq-proj" aria-label="属于哪家公司"></select>
+          <button class="btn primary" type="submit" id="tq-add">加到今天</button>
+        </form>
       </div>
-      <div id="projects"></div>
-    </section>
-
-    <aside class="next" aria-label="接下来要做">
-      <div class="next-h"><h2>接下来要做</h2><span class="cnt" id="next-cnt"></span></div>
-      <ul class="next-list" id="next-list"></ul>
-      <form class="quick" id="quick" autocomplete="off">
-        <h3>快速加一条待办</h3>
-        <input id="q-text" type="text" placeholder="要做什么？" maxlength="200">
-        <div class="quick-row">
-          <select id="q-proj" aria-label="属于哪个项目"></select>
-          <input id="q-due" type="date" aria-label="截止日期">
+      <aside class="side">
+        <div class="panel">
+          <div class="panel-h"><h2>接下来 3 天</h2><span class="cnt" id="td-soon-cnt"></span></div>
+          <ul class="slist" id="td-soon"></ul>
         </div>
-        <button class="btn primary" type="submit" id="q-add">添加</button>
-      </form>
-    </aside>
-  </div>
+        <div class="panel">
+          <div class="panel-h"><h2>今天已完成</h2><span class="cnt" id="td-done-cnt"></span></div>
+          <ul class="slist" id="td-done"></ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== 全部公司 ===== -->
+  <section class="view" id="view-all" aria-label="全部公司" hidden>
+    <section class="summary" id="summary" aria-label="总览"></section>
+    <div class="main">
+      <section aria-label="公司">
+        <div class="toolbar">
+          <div>
+            <span class="lbl">分组</span>
+            <div class="seg" id="groupby" role="group" aria-label="分组方式">
+              <button type="button" data-g="stage">按阶段</button>
+              <button type="button" data-g="role">按我的身份</button>
+              <button type="button" data-g="focus">按投入度</button>
+              <button type="button" data-g="none">不分组</button>
+            </div>
+          </div>
+          <label class="toggle" for="showdone"><input type="checkbox" id="showdone"> 显示已退出的公司</label>
+        </div>
+        <div id="projects"></div>
+      </section>
+
+      <aside class="next" aria-label="全部待办">
+        <div class="next-h"><h2>全部待办</h2><span class="cnt" id="next-cnt"></span></div>
+        <ul class="next-list" id="next-list"></ul>
+        <form class="quick" id="quick" autocomplete="off">
+          <h3>快速加一条待办</h3>
+          <input id="q-text" type="text" placeholder="要做什么？" maxlength="200">
+          <div class="quick-row">
+            <select id="q-proj" aria-label="属于哪家公司"></select>
+            <input id="q-due" type="date" aria-label="截止日期">
+          </div>
+          <button class="btn primary" type="submit" id="q-add">添加</button>
+        </form>
+      </aside>
+    </div>
+  </section>
 </div>
 
 <dialog class="editor" id="editor" aria-labelledby="ed-title">
   <form class="ed" id="ed-form" method="dialog" autocomplete="off">
     <div class="ed-h">
-      <h2 id="ed-title">编辑项目</h2>
+      <h2 id="ed-title">编辑</h2>
       <button class="btn" type="button" data-close>关闭</button>
     </div>
     <div class="ed-b" id="ed-body"></div>
     <div class="ed-f">
-      <button class="btn danger" type="button" id="ed-del">删除项目</button>
+      <button class="btn danger" type="button" id="ed-del">删除</button>
       <div class="right">
         <button class="btn" type="button" data-close>取消</button>
         <button class="btn primary" type="submit" id="ed-save">保存</button>
@@ -360,18 +468,22 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 <script>
 (() => {
   const STAGES = [
-    { k: 'idea', l: '构想' }, { k: 'validate', l: '验证' }, { k: 'build', l: '搭建' },
-    { k: 'launch', l: '上线' }, { k: 'grow', l: '增长' }, { k: 'steady', l: '稳定' },
+    { k: 'idea', l: '构想', d: '还在想，没注册或没真正投入' },
+    { k: 'build', l: '筹备', d: '公司已成立，在搭产品、团队、渠道，还没收入' },
+    { k: 'launch', l: '起步', d: '开始卖，有第一批客户' },
+    { k: 'grow', l: '增长', d: '模式跑通，在放量' },
+    { k: 'scale', l: '扩张', d: '加团队、开新市场或新产品线' },
+    { k: 'steady', l: '成熟', d: '稳定盈利，重在维持' },
   ];
-  const OFF_STAGES = [{ k: 'paused', l: '暂停' }, { k: 'done', l: '已结束' }];
+  const OFF_STAGES = [{ k: 'paused', l: '暂停', d: '' }, { k: 'done', l: '已退出', d: '' }];
   const ALL_STAGES = STAGES.concat(OFF_STAGES);
   const ROLES = [
-    { k: 'lead', l: '主导', d: '我拍板，我对结果负责' },
-    { k: 'partner', l: '合伙', d: '共同经营，各管一块' },
+    { k: 'lead', l: '创始人', d: '我拍板，对结果负全责' },
+    { k: 'partner', l: '合伙人', d: '共同经营，各管一块' },
+    { k: 'exec', l: '任职', d: '在公司担任职务，按公司方向做事' },
     { k: 'advisor', l: '顾问', d: '给方向和建议，不负责执行' },
-    { k: 'exec', l: '执行', d: '按既定方向把事做完' },
-    { k: 'investor', l: '投资', d: '出资，看结果' },
-    { k: 'support', l: '支持', d: '偶尔搭把手' },
+    { k: 'investor', l: '股东', d: '出资或持股，看结果' },
+    { k: 'support', l: '协助', d: '需要时搭把手' },
   ];
   const FOCUS = [
     { k: 'main', l: '主攻', d: '这段时间的主要精力' },
@@ -392,10 +504,12 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     set(k, v) { try { localStorage.setItem('hub:' + k, JSON.stringify(v)); } catch {} },
   };
 
+  const hashView = location.hash === '#all' ? 'all' : location.hash === '#today' ? 'today' : null;
   const state = {
     projects: [],
     status: 'loading',          // loading | ready | none | error
     canWrite: true,
+    view: hashView || local.get('view', 'today'),
     groupBy: local.get('groupBy', 'stage'),
     showDone: local.get('showDone', false),
     showAllNext: false,
@@ -403,10 +517,10 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   let DB = null;
 
   /* ---------- dates ---------- */
-  function todayISO() {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  }
+  const pad = n => String(n).padStart(2, '0');
+  const isoOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const todayISO = () => isoOf(new Date());
+  const tomorrowISO = () => { const d = new Date(); d.setDate(d.getDate() + 1); return isoOf(d); };
   function parseISO(iso) {
     if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
     const [y, m, d] = iso.split('-').map(Number);
@@ -427,13 +541,52 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     if (n <= 7) return { t: `${n} 天后`, c: 'soon' };
     return { t: md(iso), c: '' };
   }
-  (() => {
+  function msInfo(iso) {
+    const n = daysUntil(iso);
+    if (n == null) return null;
+    if (n < 0) return { t: `${md(iso)} · 已过 ${-n} 天`, c: 'late' };
+    if (n === 0) return { t: `${md(iso)} · 就是今天`, c: 'soon' };
+    return { t: `${md(iso)} · 还有 ${n} 天`, c: n <= 14 ? 'soon' : '' };
+  }
+  function paintDates() {
     const d = new Date();
     $('#today').textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · 星期${WEEK[d.getDay()]}`;
-  })();
+    $('#td-day').textContent = d.getDate();
+    $('#td-month').textContent = `${d.getMonth() + 1}月 · 星期${WEEK[d.getDay()]}`;
+    $('#td-week').textContent = d.getFullYear() + '年';
+  }
+
+  /* ---------- links: accept "名称 | 网址", "名称：网址" or a bare address ---------- */
+  const DOMAIN = /^[\w-]+(\.[\w-]+)*\.[a-z]{2,}(\/\S*)?$/i;
+  function normLink(l) {
+    let label = String((l && l.label) || '').trim();
+    let raw = String((l && l.url) || '').trim();
+    if (!raw) return null;
+    const generic = !label || label === '链接';
+    const m = raw.match(/https?:\/\/\S+/i);
+    let url, before = '';
+    if (m) { url = m[0]; before = raw.slice(0, m.index); }
+    else {
+      const parts = raw.split(/[：:]\s*/);
+      const last = parts[parts.length - 1].trim();
+      if (!DOMAIN.test(last)) return null;
+      url = 'https://' + last; before = parts.slice(0, -1).join('：');
+    }
+    before = before.replace(/[\s：:|]+$/, '').trim();
+    if (generic && before) label = before;
+    return { label: label || '链接', url };
+  }
+  function parseLinkLines(text) {
+    return text.split('\n').map(line => {
+      line = line.trim(); if (!line) return null;
+      const i = line.indexOf('|');
+      return i >= 0 ? normLink({ label: line.slice(0, i), url: line.slice(i + 1) }) : normLink({ label: '', url: line });
+    }).filter(Boolean);
+  }
 
   /* ---------- derived ---------- */
   const isActive = p => p.stage !== 'done';
+  const isLive = p => p.stage !== 'done' && p.stage !== 'paused';
   const openTasks = p => (p.tasks || []).filter(t => !t.done);
   const focusRank = k => ({ main: 0, keep: 1, watch: 2 }[k] ?? 3);
   const healthRank = k => ({ blocked: 0, risk: 1, ok: 2 }[k] ?? 3);
@@ -442,13 +595,97 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       (a.stage === 'done') - (b.stage === 'done') ||
       focusRank(a.focus) - focusRank(b.focus) ||
       healthRank(a.health) - healthRank(b.health) ||
-      String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+      String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
   }
-  function taskSortKey(t) {
-    const n = daysUntil(t.due);
-    return n == null ? 1e6 : n;
+  const taskSortKey = t => { const n = daysUntil(t.due); return n == null ? 1e6 : n; };
+  const find = id => state.projects.find(p => p.id === id);
+  const roleOf = p => byK(ROLES, p.roleType) || ROLES[0];
+  const isTodayTask = t => { const n = daysUntil(t.due); return (n != null && n <= 0) || t.today === todayISO(); };
+
+  /* ---------- render: today ---------- */
+  function renderToday() {
+    const live = sortProjects(state.projects.filter(isLive));
+    const today = todayISO();
+    const blocksEl = $('#td-blocks');
+
+    if (state.status !== 'ready') {
+      $('#td-count').innerHTML = '';
+      $('#td-ms').innerHTML = '';
+      blocksEl.innerHTML = state.status === 'loading'
+        ? `<div class="today-empty"><h3>正在载入今天的事…</h3><p>会把每家公司今天到期、逾期和你加到今天的待办放在这里。</p></div>`
+        : `<div class="today-empty"><h3>暂时连不上数据</h3><p>请在 claude.ai 中登录后打开这个页面。</p></div>`;
+      $('#td-soon').innerHTML = ''; $('#td-done').innerHTML = '';
+      $('#td-soon-cnt').textContent = ''; $('#td-done-cnt').textContent = '';
+      fillProjSelect($('#tq-proj'), live, ['#tq-text', '#tq-proj', '#tq-add']);
+      return;
+    }
+
+    let nToday = 0, nLate = 0;
+    const blocks = live.map(p => {
+      const items = openTasks(p).filter(isTodayTask).sort((a, b) => taskSortKey(a) - taskSortKey(b));
+      nToday += items.length;
+      nLate += items.filter(t => (daysUntil(t.due) ?? 0) < 0).length;
+      return { p, items };
+    }).filter(b => b.items.length);
+
+    const done = live.flatMap(p => (p.tasks || []).filter(t => t.done && t.doneAt === today).map(t => ({ p, t })));
+    const soon = live.flatMap(p => openTasks(p).filter(t => !isTodayTask(t) && (() => { const n = daysUntil(t.due); return n != null && n >= 1 && n <= 3; })()).map(t => ({ p, t })))
+      .sort((a, b) => taskSortKey(a.t) - taskSortKey(b.t));
+
+    $('#td-count').innerHTML = `
+      <div class="c"><span class="n">${nToday}</span><span class="l">今天要做</span></div>
+      <div class="c ${nLate ? 'alert' : ''}"><span class="n">${nLate}</span><span class="l">其中逾期</span></div>
+      <div class="c ${done.length ? 'good' : ''}"><span class="n">${done.length}</span><span class="l">今天已完成</span></div>`;
+
+    const ms = live.filter(p => p.milestone && p.milestone.date && (daysUntil(p.milestone.date) ?? -99) >= -3)
+      .sort((a, b) => daysUntil(a.milestone.date) - daysUntil(b.milestone.date));
+    $('#td-ms').innerHTML = ms.map(p => {
+      const mi = msInfo(p.milestone.date);
+      return `<span class="ms-chip role-${roleOf(p).k}"><span class="who">${esc(p.name || '未命名')}</span><span class="what">${esc(p.milestone.title || '下一个节点')}</span><span class="when ${mi.c}">${mi.t}</span></span>`;
+    }).join('');
+
+    if (!live.length) {
+      blocksEl.innerHTML = `<div class="today-empty"><h3>还没有公司</h3><p>先在「全部公司」里添加，再给每家公司加上待办和截止日期。</p></div>`;
+    } else if (!blocks.length) {
+      blocksEl.innerHTML = `<div class="today-empty"><h3>今天没有到期的事</h3><p>${soon.length ? '可以从右边「接下来 3 天」里挑几件，点「今天做」提前处理。' : '也可以在下面直接加一件今天要做的事。'}</p></div>`;
+    } else {
+      blocksEl.innerHTML = blocks.map(({ p, items }) => {
+        const role = roleOf(p);
+        return `<section class="tblock role-${role.k}">
+          <div class="tblock-h"><span class="name">${esc(p.name || '未命名')}</span><span class="rtag">${esc(role.l)}</span><span class="cnt">${items.length} 件</span></div>
+          <ul class="tlist">${items.map(t => {
+            const di = dueInfo(t.due);
+            const pinned = !(di && (di.c === 'late' || di.t === '今天')) && t.today === today;
+            const id = `td-${p.id}-${t.id}`;
+            return `<li class="trow">
+              <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${state.canWrite ? '' : 'disabled'}>
+              <label for="${esc(id)}">${esc(t.text)}</label>
+              ${pinned ? '<span class="pin">今天做</span>' : di ? `<span class="due ${di.c}">${di.t}</span>` : '<span></span>'}
+              ${state.canWrite ? `<button class="mini" type="button" data-act="tomorrow" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}">推到明天</button>` : '<span></span>'}
+            </li>`;
+          }).join('')}</ul>
+        </section>`;
+      }).join('');
+    }
+
+    $('#td-soon-cnt').textContent = soon.length ? `${soon.length} 条` : '';
+    $('#td-soon').innerHTML = soon.length ? soon.map(({ p, t }) => {
+      const di = dueInfo(t.due);
+      return `<li class="srow"><div><div class="t">${esc(t.text)}</div>
+        <div class="meta"><span class="tproj role-${roleOf(p).k}">${esc(p.name || '未命名')}</span>${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div></div>
+        ${state.canWrite ? `<button class="mini" type="button" data-act="today" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}">今天做</button>` : '<span></span>'}
+      </li>`;
+    }).join('') : '<li class="none">未来 3 天没有到期的待办。</li>';
+
+    $('#td-done-cnt').textContent = done.length ? `${done.length} 件` : '';
+    $('#td-done').innerHTML = done.length ? done.map(({ p, t }) => {
+      const id = `tx-${p.id}-${t.id}`;
+      return `<li class="drow"><input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" checked ${state.canWrite ? '' : 'disabled'} aria-label="取消完成">
+        <label for="${esc(id)}">${esc(t.text)} · ${esc(p.name || '')}</label></li>`;
+    }).join('') : '<li class="none">勾掉的事会出现在这里，取消勾选可以撤回。</li>';
+
+    fillProjSelect($('#tq-proj'), live, ['#tq-text', '#tq-proj', '#tq-add']);
   }
-  function find(id) { return state.projects.find(p => p.id === id); }
 
   /* ---------- render: summary ---------- */
   function renderSummary() {
@@ -460,30 +697,28 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     const risk = act.filter(p => p.health === 'risk').length;
     const fc = k => act.filter(p => p.focus === k).length;
 
-    const roleCounts = ROLES.map(r => ({ ...r, n: act.filter(p => (p.roleType || 'lead') === r.k).length })).filter(r => r.n);
+    const roleCounts = ROLES.map(r => ({ ...r, n: act.filter(p => roleOf(p).k === r.k).length })).filter(r => r.n);
     const total = roleCounts.reduce((s, r) => s + r.n, 0);
-    const bar = total
-      ? roleCounts.map(r => `<span style="flex:${r.n};background:var(--r-${r.k})" title="${esc(r.l)} ${r.n}"></span>`).join('')
-      : '';
+    const bar = roleCounts.map(r => `<span style="flex:${r.n};background:var(--r-${r.k})" title="${esc(r.l)} ${r.n}"></span>`).join('');
     const keys = total
-      ? roleCounts.map(r => `<span class="k"><span class="dot" style="background:var(--r-${r.k})"></span>${esc(r.l)} <b>${r.n}</b></span>`).join('')
-      : `<span class="k" style="color:var(--faint)">添加项目后，这里会显示你在各项目里扮演的角色分布</span>`;
+      ? act.map(p => { const r = roleOf(p); return `<span class="k"><span class="dot" style="background:var(--r-${r.k})"></span>${esc(p.name || '未命名')} · ${esc(r.l)}</span>`; }).join('')
+      : `<span class="k" style="color:var(--faint)">添加公司后，这里会显示你在每家公司的身份</span>`;
 
     $('#summary').innerHTML = `
       <div class="sum-stats">
-        <div class="stat"><span class="l">进行中项目</span><span class="n">${act.length}</span><span class="sub">主攻 ${fc('main')} · 维持 ${fc('keep')} · 观望 ${fc('watch')}</span></div>
+        <div class="stat"><span class="l">在做的公司</span><span class="n">${act.length}</span><span class="sub">主攻 ${fc('main')} · 维持 ${fc('keep')} · 观望 ${fc('watch')}</span></div>
         <div class="stat"><span class="l">待办</span><span class="n">${tasks.length}</span><span class="sub">7 天内到期 ${week}</span></div>
         <div class="stat ${late ? 'alert' : ''}"><span class="l">逾期</span><span class="n">${late}</span><span class="sub">${late ? '先处理这些' : '没有逾期'}</span></div>
-        <div class="stat ${blocked ? 'alert' : ''}"><span class="l">卡住的项目</span><span class="n">${blocked}</span><span class="sub">有风险 ${risk}</span></div>
+        <div class="stat ${blocked ? 'alert' : ''}"><span class="l">卡住的公司</span><span class="n">${blocked}</span><span class="sub">有风险 ${risk}</span></div>
       </div>
       <div class="roles">
-        <h2>我的定位分布</h2>
-        ${total ? `<div class="rolebar" role="img" aria-label="${esc(roleCounts.map(r => r.l + ' ' + r.n + ' 个').join('，'))}">${bar}</div>` : ''}
+        <h2>我在每家公司的身份</h2>
+        ${total ? `<div class="rolebar" role="img" aria-label="${esc(roleCounts.map(r => r.l + ' ' + r.n + ' 家').join('，'))}">${bar}</div>` : ''}
         <div class="rolekeys">${keys}</div>
       </div>`;
   }
 
-  /* ---------- render: project cards ---------- */
+  /* ---------- render: company cards ---------- */
   function stageBlock(p) {
     const idx = STAGES.findIndex(s => s.k === p.stage);
     const off = byK(OFF_STAGES, p.stage);
@@ -500,38 +735,31 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   function msBlock(p) {
     const ms = p.milestone || {};
     if (!ms.title && !ms.date) return '';
-    const n = daysUntil(ms.date);
-    let d = '', c = '';
-    if (n != null) {
-      if (n < 0) { d = `${md(ms.date)} · 已过 ${-n} 天`; c = 'late'; }
-      else if (n === 0) { d = `${md(ms.date)} · 就是今天`; c = 'soon'; }
-      else { d = `${md(ms.date)} · 还有 ${n} 天`; c = n <= 14 ? 'soon' : ''; }
-    }
-    return `<div class="ms"><span class="ms-t"><small>下一个节点</small>${esc(ms.title || '未命名节点')}</span>${d ? `<span class="ms-d mono ${c}">${d}</span>` : ''}</div>`;
+    const mi = msInfo(ms.date);
+    return `<div class="ms"><span class="ms-t"><small>下一个节点</small>${esc(ms.title || '未命名节点')}</span>${mi ? `<span class="ms-d mono ${mi.c}">${mi.t}</span>` : ''}</div>`;
   }
-  function taskRow(p, t, cls) {
+  function taskRow(p, t) {
     const di = dueInfo(t.due);
     const id = `c-${p.id}-${t.id}`;
-    return `<li class="${cls}">
+    return `<li class="task">
       <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${t.done ? 'checked' : ''} ${state.canWrite ? '' : 'disabled'}>
       <label for="${esc(id)}">${esc(t.text)}</label>
       ${di ? `<span class="due ${di.c}">${di.t}</span>` : '<span></span>'}
     </li>`;
   }
   function card(p) {
-    const role = byK(ROLES, p.roleType) || ROLES[0];
+    const role = roleOf(p);
     const health = byK(HEALTH, p.health) || HEALTH[0];
     const focus = byK(FOCUS, p.focus);
     const open = openTasks(p).sort((a, b) => taskSortKey(a) - taskSortKey(b));
     const doneN = (p.tasks || []).length - open.length;
-    const shown = open.slice(0, 3);
-    const links = (p.links || []).filter(l => /^https?:\/\//i.test(l.url || '')).slice(0, 3)
-      .map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label || '链接')}</a>`).join('');
+    const links = (p.links || []).map(normLink).filter(Boolean).slice(0, 8)
+      .map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('');
     const upd = p.updatedAt ? md(String(p.updatedAt).slice(0, 10)) : '';
     return `<article class="card ${p.stage === 'done' ? 'is-done' : ''} ${p.stage === 'paused' ? 'is-paused' : ''}">
       <div class="card-h">
         <div class="card-title">
-          <button class="pname" type="button" data-edit="${esc(p.id)}">${esc(p.name || '未命名项目')}</button>
+          <button class="pname" type="button" data-edit="${esc(p.id)}">${esc(p.name || '未命名')}</button>
           <span class="pill h-${health.k}">${health.l}</span>
         </div>
         ${p.tagline ? `<p class="tagline">${esc(p.tagline)}</p>` : ''}
@@ -543,35 +771,38 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       ${stageBlock(p)}
       ${msBlock(p)}
       ${open.length
-        ? `<ul class="tasks">${shown.map(t => taskRow(p, t, 'task')).join('')}</ul>${open.length > 3 ? `<span class="more">还有 ${open.length - 3} 条待办</span>` : ''}`
+        ? `<ul class="tasks">${open.slice(0, 3).map(t => taskRow(p, t)).join('')}</ul>${open.length > 3 ? `<span class="more">还有 ${open.length - 3} 条待办</span>` : ''}`
         : `<p class="no-tasks">${(p.tasks || []).length ? '待办全部完成' : '还没有待办'}</p>`}
       <div class="card-f">
-        <span>${focus ? focus.l + ' · ' : ''}${doneN}/${(p.tasks || []).length} 已完成${upd ? ' · ' + upd + '更新' : ''}</span>
-        <span class="links">${links}${state.canWrite ? `<button class="linkbtn" type="button" data-edit="${esc(p.id)}">编辑</button>` : ''}</span>
+        ${links ? `<div class="links">${links}</div>` : ''}
+        <div class="row">
+          <span>${focus ? focus.l + ' · ' : ''}${doneN}/${(p.tasks || []).length} 已完成${upd ? ' · ' + upd + '更新' : ''}</span>
+          ${state.canWrite ? `<button class="linkbtn" type="button" data-edit="${esc(p.id)}">编辑</button>` : ''}
+        </div>
       </div>
     </article>`;
   }
   function renderProjects() {
     const host = $('#projects');
     if (state.status === 'loading') {
-      host.innerHTML = `<div class="empty"><h3>正在载入项目…</h3><p>项目数据保存在这个页面的云端存储里，几秒内就会出现。</p></div>`;
+      host.innerHTML = `<div class="empty"><h3>正在载入…</h3><p>公司和待办保存在这个页面的云端存储里，几秒内就会出现。</p></div>`;
       return;
     }
     if (state.status === 'none' || state.status === 'error') {
-      host.innerHTML = `<div class="empty"><h3>暂时连不上项目数据</h3><p>请在 claude.ai 中登录后打开这个页面。项目和待办都存在云端，换设备打开也能看到。</p></div>`;
+      host.innerHTML = `<div class="empty"><h3>暂时连不上数据</h3><p>请在 claude.ai 中登录后打开这个页面。数据存在云端，换设备打开也能看到。</p></div>`;
       return;
     }
     const list = sortProjects(state.projects.filter(p => state.showDone || p.stage !== 'done'));
     if (!list.length) {
       const hidden = state.projects.length - list.length;
-      host.innerHTML = `<div class="empty"><h3>${hidden ? '没有进行中的项目' : '还没有项目'}</h3>
-        <p>${hidden ? `有 ${hidden} 个已结束的项目被隐藏了，勾选「显示已结束的项目」可以看到。` : '每个项目记下它现在的阶段、你在里面的定位（主导、合伙、顾问……）和接下来要做的事。'}</p>
-        ${state.canWrite ? '<button class="btn primary" type="button" data-new>＋ 新建第一个项目</button>' : ''}</div>`;
+      host.innerHTML = `<div class="empty"><h3>${hidden ? '没有在做的公司' : '还没有公司'}</h3>
+        <p>${hidden ? `有 ${hidden} 家已退出的公司被隐藏了，勾选「显示已退出的公司」可以看到。` : '每家公司记下它现在的阶段、你在里面的身份（创始人、合伙人、顾问……）和接下来要做的事。'}</p>
+        ${state.canWrite ? '<button class="btn primary" type="button" data-new>＋ 添加第一家公司</button>' : ''}</div>`;
       return;
     }
     let groups;
-    if (state.groupBy === 'stage') groups = ALL_STAGES.map(s => ({ l: s.l, hint: '', items: list.filter(p => (p.stage || 'idea') === s.k) }));
-    else if (state.groupBy === 'role') groups = ROLES.map(r => ({ l: r.l, hint: r.d, items: list.filter(p => (p.roleType || 'lead') === r.k) }));
+    if (state.groupBy === 'stage') groups = ALL_STAGES.map(s => ({ l: s.l, hint: s.d, items: list.filter(p => (byK(ALL_STAGES, p.stage) || STAGES[0]).k === s.k) }));
+    else if (state.groupBy === 'role') groups = ROLES.map(r => ({ l: r.l, hint: r.d, items: list.filter(p => roleOf(p).k === r.k) }));
     else if (state.groupBy === 'focus') groups = FOCUS.map(f => ({ l: f.l, hint: f.d, items: list.filter(p => p.focus === f.k) }))
       .concat([{ l: '未设置投入度', hint: '', items: list.filter(p => !byK(FOCUS, p.focus)) }]);
     else groups = [{ l: '', hint: '', items: list }];
@@ -582,15 +813,22 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       </section>`).join('');
   }
 
-  /* ---------- render: next-up list ---------- */
+  /* ---------- render: merged to-do list ---------- */
+  function fillProjSelect(sel, list, controls) {
+    const prev = sel.value;
+    sel.innerHTML = list.length ? list.map(p => `<option value="${esc(p.id)}">${esc(p.name || '未命名')}</option>`).join('') : '<option value="">先添加一家公司</option>';
+    if (prev && list.some(p => p.id === prev)) sel.value = prev;
+    const disabled = !state.canWrite || state.status !== 'ready' || !list.length;
+    controls.forEach(s => { $(s).disabled = disabled; });
+  }
   function renderNext() {
     const listEl = $('#next-list');
-    const act = sortProjects(state.projects.filter(p => isActive(p) && p.stage !== 'paused'));
-    const rows = act.flatMap(p => openTasks(p).map(t => ({ p, t })));
+    const live = sortProjects(state.projects.filter(isLive));
+    const rows = live.flatMap(p => openTasks(p).map(t => ({ p, t })));
     rows.sort((a, b) => taskSortKey(a.t) - taskSortKey(b.t) || focusRank(a.p.focus) - focusRank(b.p.focus));
     $('#next-cnt').textContent = rows.length ? `${rows.length} 条` : '';
-    if (state.status !== 'ready') { listEl.innerHTML = `<li class="next-empty">载入后显示所有项目的待办，按截止日期排好。</li>`; }
-    else if (!rows.length) { listEl.innerHTML = `<li class="next-empty">没有待办。在项目里或下方加一条。</li>`; }
+    if (state.status !== 'ready') { listEl.innerHTML = `<li class="next-empty">载入后显示所有公司的待办，按截止日期排好。</li>`; }
+    else if (!rows.length) { listEl.innerHTML = `<li class="next-empty">没有待办。在公司卡片里或下方加一条。</li>`; }
     else {
       const limit = state.showAllNext ? rows.length : 10;
       const secs = [
@@ -608,12 +846,11 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
           if (count >= limit) break;
           count++;
           const di = dueInfo(t.due);
-          const role = byK(ROLES, p.roleType) || ROLES[0];
           const id = `n-${p.id}-${t.id}`;
           out += `<li class="todo">
             <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${state.canWrite ? '' : 'disabled'}>
             <div><label for="${esc(id)}">${esc(t.text)}</label>
-              <div class="meta"><span class="tproj role-${role.k}">${esc(p.name || '未命名')}</span>${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div>
+              <div class="meta"><span class="tproj role-${roleOf(p).k}">${esc(p.name || '未命名')}</span>${di ? `<span class="due ${di.c}">${di.t}</span>` : ''}</div>
             </div>
           </li>`;
         }
@@ -621,17 +858,15 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       if (rows.length > 10) out += `<li><button class="showall" type="button" id="showall">${state.showAllNext ? '收起' : `显示全部 ${rows.length} 条`}</button></li>`;
       listEl.innerHTML = out;
     }
-    // quick-add project picker, keeping the current choice
-    const sel = $('#q-proj');
-    const prev = sel.value;
-    const opts = act.map(p => `<option value="${esc(p.id)}">${esc(p.name || '未命名项目')}</option>`).join('');
-    sel.innerHTML = opts || '<option value="">先新建一个项目</option>';
-    if (prev && act.some(p => p.id === prev)) sel.value = prev;
-    const disabled = !state.canWrite || state.status !== 'ready' || !act.length;
-    ['#q-text', '#q-proj', '#q-due', '#q-add'].forEach(s => { $(s).disabled = disabled; });
+    fillProjSelect($('#q-proj'), live, ['#q-text', '#q-proj', '#q-due', '#q-add']);
   }
 
   function render() {
+    paintDates();
+    $('#view-today').hidden = state.view !== 'today';
+    $('#view-all').hidden = state.view !== 'all';
+    document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+    renderToday();
     renderSummary();
     renderProjects();
     renderNext();
@@ -650,7 +885,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   }
   function errText(e) {
     switch (e && e.code) {
-      case 'quota_exceeded': return '存储空间已满：删掉一些旧项目后再试。';
+      case 'quota_exceeded': return '存储空间已满：删掉一些旧数据后再试。';
       case 'invalid_argument': return '没能保存：你可能没有这个页面的编辑权限。';
       case 'resource_exhausted': return '操作太快了，等几秒再试。';
       case 'revoked': case 'not_granted': return '页面的数据权限已失效，请刷新页面。';
@@ -661,14 +896,15 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     if (e && e.code === 'invalid_argument' && state.canWrite) { state.canWrite = false; render(); }
     toast(errText(e));
   }
-  function setTask(pid, tid, done) {
+  function patchTask(pid, tid, patch) {
     const ref = DB.collection('projects').doc(pid);
     return queueWrite(pid, () => {
       const p = find(pid); if (!p) return;
-      const tasks = clone(p.tasks || []).map(t => t.id === tid ? { ...t, done, doneAt: done ? todayISO() : null } : t);
+      const tasks = clone(p.tasks || []).map(t => t.id === tid ? { ...t, ...patch } : t);
       return ref.update({ tasks, updatedAt: nowISO() });
     }).catch(onWriteError);
   }
+  const setTask = (pid, tid, done) => patchTask(pid, tid, { done, doneAt: done ? todayISO() : null });
   function addTask(pid, text, due) {
     const ref = DB.collection('projects').doc(pid);
     return queueWrite(pid, () => {
@@ -695,7 +931,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   let draft = null, draftIsNew = false, delArmed = null;
 
   function blankProject() {
-    return { name: '', tagline: '', stage: 'idea', stageNote: '', roleType: 'lead', role: '', roleNote: '',
+    return { name: '', tagline: '', stage: 'build', stageNote: '', roleType: 'lead', role: '', roleNote: '',
       focus: 'keep', health: 'ok', milestone: { title: '', date: '' }, tasks: [], links: [], notes: '' };
   }
   function chipGroup(name, list, val, extraCls) {
@@ -715,25 +951,25 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   }
   function renderEditor() {
     const d = draft;
-    $('#ed-title').textContent = draftIsNew ? '新建项目' : '编辑项目';
+    $('#ed-title').textContent = draftIsNew ? '添加公司' : '编辑';
     $('#ed-del').hidden = draftIsNew;
     resetDel();
     $('#ed-body').innerHTML = `
       <div class="row2">
-        <label class="lf"><span class="fl">项目名称</span><input class="field" id="f-name" type="text" value="${esc(d.name)}" maxlength="60" placeholder="例如：1999 培育钻"></label>
-        <label class="lf"><span class="fl">一句话说明</span><input class="field" id="f-tagline" type="text" value="${esc(d.tagline)}" maxlength="120" placeholder="这个项目是做什么的"></label>
+        <label class="lf"><span class="fl">名称</span><input class="field" id="f-name" type="text" value="${esc(d.name)}" maxlength="60" placeholder="例如：海外仓"></label>
+        <label class="lf"><span class="fl">一句话说明</span><input class="field" id="f-tagline" type="text" value="${esc(d.tagline)}" maxlength="120" placeholder="这家公司做什么"></label>
       </div>
 
-      <fieldset class="fs"><legend>现在处于哪个阶段</legend>
+      <fieldset class="fs"><legend>公司现在处于哪个阶段</legend>
         ${chipGroup('f-stage', ALL_STAGES, d.stage)}
-        <input class="field" id="f-stageNote" type="text" value="${esc(d.stageNote)}" maxlength="160" placeholder="阶段补充，例如：独立站已上线 16 款，准备软启动">
+        <input class="field" id="f-stageNote" type="text" value="${esc(d.stageNote)}" maxlength="160" placeholder="阶段补充，例如：仓库架构已搭好，等待到货">
       </fieldset>
 
-      <fieldset class="fs"><legend>我在这个项目里的定位</legend>
+      <fieldset class="fs"><legend>我在这家公司的身份</legend>
         ${chipGroup('f-roleType', ROLES, d.roleType, 'role-chip')}
         <div class="row2">
-          <label class="lf"><span class="fl">角色名称</span><input class="field" id="f-role" type="text" value="${esc(d.role)}" maxlength="60" placeholder="例如：创始人 · 主理人"></label>
-          <label class="lf"><span class="fl">我负责什么</span><input class="field" id="f-roleNote" type="text" value="${esc(d.roleNote)}" maxlength="200" placeholder="例如：品牌、销售、亲自出镜"></label>
+          <label class="lf"><span class="fl">具体角色</span><input class="field" id="f-role" type="text" value="${esc(d.role)}" maxlength="60" placeholder="例如：行政，后台"></label>
+          <label class="lf"><span class="fl">我负责什么</span><input class="field" id="f-roleNote" type="text" value="${esc(d.roleNote)}" maxlength="200" placeholder="例如：需要时提供支持，特别是语言方面"></label>
         </div>
       </fieldset>
 
@@ -744,7 +980,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 
       <fieldset class="fs"><legend>下一个节点</legend>
         <div class="row2">
-          <input class="field" id="f-ms-title" type="text" value="${esc((d.milestone || {}).title)}" maxlength="80" placeholder="例如：圣诞季首销">
+          <input class="field" id="f-ms-title" type="text" value="${esc((d.milestone || {}).title)}" maxlength="80" placeholder="例如：黑五销售">
           <input class="field" id="f-ms-date" type="date" value="${esc((d.milestone || {}).date || '')}" aria-label="节点日期">
         </div>
       </fieldset>
@@ -754,11 +990,11 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
         <div><button class="btn" type="button" id="ed-addtask">＋ 加一条待办</button></div>
       </fieldset>
 
-      <label class="lf"><span class="fl">链接（每行一个：名称 | 网址）</span>
-        <textarea class="field" id="f-links" rows="2" placeholder="Shopify 后台 | https://admin.shopify.com/...">${esc((d.links || []).map(l => (l.label || '') + ' | ' + (l.url || '')).join('\n'))}</textarea>
+      <label class="lf"><span class="fl">链接（每行一个，例如：官网：1999joias.com）</span>
+        <textarea class="field" id="f-links" rows="3" placeholder="后台：https://admin.shopify.com/...">${esc((d.links || []).map(normLink).filter(Boolean).map(l => l.label + '：' + l.url).join('\n'))}</textarea>
       </label>
       <label class="lf"><span class="fl">备注</span>
-        <textarea class="field" id="f-notes" rows="3" placeholder="合作方、关键决定、要记住的事">${esc(d.notes)}</textarea>
+        <textarea class="field" id="f-notes" rows="3" placeholder="合作方、关键人、要记住的事">${esc(d.notes)}</textarea>
       </label>
       <p class="ed-err" id="ed-err" hidden></p>`;
   }
@@ -768,14 +1004,14 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       done: $('#e-done-' + CSS.escape(t.id))?.checked ?? t.done,
       text: ($('#e-text-' + CSS.escape(t.id))?.value ?? t.text).trim(),
       due: $('#e-due-' + CSS.escape(t.id))?.value || null,
-    }));
+    })).map(t => ({ ...t, doneAt: t.done ? (t.doneAt || todayISO()) : null }));
   }
   function readRadio(name, fallback) { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : fallback; }
   function syncDraft() {
     syncTasks();
     draft.name = $('#f-name').value.trim();
     draft.tagline = $('#f-tagline').value.trim();
-    draft.stage = readRadio('f-stage', 'idea');
+    draft.stage = readRadio('f-stage', 'build');
     draft.stageNote = $('#f-stageNote').value.trim();
     draft.roleType = readRadio('f-roleType', 'lead');
     draft.role = $('#f-role').value.trim();
@@ -783,12 +1019,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     draft.focus = readRadio('f-focus', 'keep');
     draft.health = readRadio('f-health', 'ok');
     draft.milestone = { title: $('#f-ms-title').value.trim(), date: $('#f-ms-date').value || '' };
-    draft.links = $('#f-links').value.split('\n').map(line => {
-      const i = line.lastIndexOf('|');
-      const label = (i >= 0 ? line.slice(0, i) : '').trim();
-      const url = (i >= 0 ? line.slice(i + 1) : line).trim();
-      return url ? { label: label || '链接', url } : null;
-    }).filter(Boolean);
+    draft.links = parseLinkLines($('#f-links').value);
     draft.notes = $('#f-notes').value.trim();
     draft.tasks = draft.tasks.filter(t => t.text);
   }
@@ -802,7 +1033,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     setTimeout(() => { if (draftIsNew) $('#f-name')?.focus(); }, 30);
   }
   function closeEditor() { if (dlg.open) dlg.close(); draft = null; }
-  function resetDel() { clearTimeout(delArmed); delArmed = null; const b = $('#ed-del'); b.classList.remove('armed'); b.textContent = '删除项目'; }
+  function resetDel() { clearTimeout(delArmed); delArmed = null; const b = $('#ed-del'); b.classList.remove('armed'); b.textContent = '删除'; }
   function showEdErr(msg) { const el = $('#ed-err'); el.textContent = msg; el.hidden = !msg; }
 
   $('#ed-body').addEventListener('click', e => {
@@ -820,7 +1051,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     e.preventDefault();
     if (!draft || !DB) return;
     syncDraft();
-    if (!draft.name) { showEdErr('给项目起个名字再保存。'); $('#f-name').focus(); return; }
+    if (!draft.name) { showEdErr('先填名称再保存。'); $('#f-name').focus(); return; }
     const { id, ...data } = draft;
     data.updatedAt = nowISO();
     if (draftIsNew) data.createdAt = data.updatedAt;
@@ -830,7 +1061,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     try {
       await queueWrite(ref.id, () => ref.set(data));
       closeEditor();
-      toast(draftIsNew ? '项目已创建' : '已保存');
+      toast(draftIsNew ? '已添加' : '已保存');
     } catch (err) {
       showEdErr(errText(err));
     } finally {
@@ -850,7 +1081,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     try {
       await queueWrite(id, () => DB.collection('projects').doc(id).delete());
       closeEditor();
-      toast(`已删除「${name || '未命名项目'}」`);
+      toast(`已删除「${name || '未命名'}」`);
     } catch (err) { showEdErr(errText(err)); }
   });
   dlg.addEventListener('click', e => {
@@ -861,16 +1092,25 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
 
   /* ---------- page events ---------- */
   document.addEventListener('click', e => {
+    const v = e.target.closest('#tabs button');
+    if (v) { state.view = v.dataset.view; local.set('view', state.view); render(); return; }
     const ed = e.target.closest('[data-edit]');
     if (ed && state.canWrite) { openEditor(ed.dataset.edit); return; }
     if (e.target.closest('#btn-new, [data-new]')) { openEditor(null); return; }
+    const act = e.target.closest('[data-act]');
+    if (act && DB) {
+      const { pid, tid } = act.dataset;
+      if (act.dataset.act === 'tomorrow') { patchTask(pid, tid, { due: tomorrowISO(), today: null }); toast('已改到明天'); }
+      if (act.dataset.act === 'today') { patchTask(pid, tid, { today: todayISO() }); toast('已加到今天'); }
+      return;
+    }
     const g = e.target.closest('#groupby button');
     if (g) { state.groupBy = g.dataset.g; local.set('groupBy', state.groupBy); render(); return; }
     if (e.target.closest('#showall')) { state.showAllNext = !state.showAllNext; renderNext(); }
   });
   document.addEventListener('change', e => {
     const cb = e.target.closest('input[type="checkbox"][data-pid]');
-    if (cb) {
+    if (cb && DB) {
       const { pid, tid } = cb.dataset;
       const done = cb.checked;
       setTask(pid, tid, done);
@@ -882,19 +1122,28 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     }
     if (e.target.id === 'showdone') { state.showDone = e.target.checked; local.set('showDone', state.showDone); render(); }
   });
+  async function submitQuick(textSel, projSel, btnSel, due) {
+    const text = $(textSel).value.trim();
+    const pid = $(projSel).value;
+    if (!text || !pid || !DB) { $(textSel).focus(); return false; }
+    $(btnSel).disabled = true;
+    try {
+      await addTask(pid, text, due);
+      $(textSel).value = '';
+      toast('已添加');
+      return true;
+    } catch (err) { onWriteError(err); return false; }
+    finally { $(btnSel).disabled = !state.canWrite; $(textSel).focus(); }
+  }
   $('#quick').addEventListener('submit', async e => {
     e.preventDefault();
-    const text = $('#q-text').value.trim();
-    const pid = $('#q-proj').value;
-    if (!text || !pid || !DB) { $('#q-text').focus(); return; }
-    $('#q-add').disabled = true;
-    try {
-      await addTask(pid, text, $('#q-due').value);
-      $('#q-text').value = ''; $('#q-due').value = '';
-      toast('已添加');
-    } catch (err) { onWriteError(err); }
-    finally { $('#q-add').disabled = !state.canWrite; $('#q-text').focus(); }
+    if (await submitQuick('#q-text', '#q-proj', '#q-add', $('#q-due').value)) $('#q-due').value = '';
   });
+  $('#t-quick').addEventListener('submit', e => { e.preventDefault(); submitQuick('#tq-text', '#tq-proj', '#tq-add', todayISO()); });
+
+  // a page left open overnight rolls over to the new day
+  let lastDay = todayISO();
+  setInterval(() => { if (todayISO() !== lastDay) { lastDay = todayISO(); render(); } }, 60000);
 
   /* ---------- boot ---------- */
   render();
