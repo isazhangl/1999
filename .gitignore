@@ -31,3 +31,8 @@ venv/
 # Temp
 tmp/
 *.tmp
+
+# 门店报表：原始明细/报表含客户信息，不入库
+reports/
+analytics/**/*.xlsx
+analytics/**/*.xls
