@@ -126,7 +126,7 @@ cols = [("板块", 7), ("当前结果", 30), ("目标\n（什么时候做到什�
 for j, (h, w) in enumerate(cols, 1):
     ws.column_dimensions[get_column_letter(j)].width = w
 
-ws["A1"] = "新客增长计划（含10/29沙龙、11月活动）— 草稿 v4"
+ws["A1"] = "新客增长计划（含10/29沙龙、11月活动）— 草稿 v5"
 ws["A1"].font = Font(name=FONT, size=15, bold=True)
 ws["A2"] = rt("黑字 = 原稿；", R("红字 = 原稿重点；"), B("蓝字 = Claude 补充的数据和建议（待确认）；"),
               "黄底 = 需要拍板 / 原稿标黄。1店 = Morumbi（街边店），2店 = Ibirapuera（Shopping Ibirapuera 商场店）。"
@@ -222,7 +222,7 @@ offline_rows = [
     ("老带新", rt(B("10月老带新：1店 3 人，2店 21 人（2店线下最大来源）；目前没有激励")),
      "11月起，只在 1店 Morumbi：带 1 位客人来，送 1 次快速洗头（Reset Capilar）",
      rt(B("老带新渠道新客数（Indicado por um amigo）")), "11月（暂定只做11月）", None),
-    ("到店赠送", None, "11月：1店 Morumbi 所有客人（新客、老客）做护理都送快速肩颈", None, "11月（暂定只做11月）", None),
+    ("到店赠送", None, "11月：两店（1店 Morumbi、2店 Ibirapuera）所有客人，新客老客都一样，到店就送快速肩颈", None, "11月（暂定只做11月）", None),
     ("商场广告置换", rt(B("2店在 Shopping Ibirapuera 商场里：10月「商场」渠道新客 9 人，成交 0")), None, None, None, None),
     ("大客户", None, "写字楼午休快洗：市场部做方案，由市场部人员在 1店 Morumbi 周边写字楼谈判",
      rt(B("签约公司数 → 员工到店数")), "11月", "市场部"),
@@ -345,7 +345,7 @@ decisions = [
      "分三层推：体验未成交 → 促销套餐；会员 → 老带新送快速洗头；沉睡客户 → Reset Capilar 回店。名单可以从收银明细导出",
      "分三类人发：体验过没买 → 促销套餐 R$1,280；1店会员 → 老带新送快速洗头；很久没来 → Reset Capilar R$199 回店"),
     ("追踪", "—", "—", "Reset Capilar、促销套餐、阶梯券、Gympass 在收银系统里单独命名 / 记录，进店渠道照填", None),
-    ("1店到店赠送", "（Isa 补充）", "—", "对外宣传时和 Reset Capilar、Black Friday 一起讲", "11月 1店 Morumbi 所有客人（新老）做护理送快速肩颈"),
+    ("到店赠送", "（Isa 补充）", "—", "对外宣传时和 Reset Capilar、Black Friday 一起讲", "11月两店所有客人（新老）到店就送快速肩颈"),
     ("老带新", "（Isa 补充）", "10月老带新新客：1店 3 人、2店 21 人", "收银时进店渠道选 Indicado por um amigo，才能统计效果",
      "11月起，只在 1店 Morumbi：带 1 位客人来，送 1 次快速洗头（Reset Capilar）"),
     ("写字楼午休快洗", "（Isa 补充）", "—", "Reset Capilar 适合午休时段；可以做企业团购价 / 员工福利",
