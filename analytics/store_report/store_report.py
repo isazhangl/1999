@@ -6,7 +6,8 @@
     python3 store_report.py 售出明细.xlsx -o 报表.xlsx
     python3 store_report.py 售出明细.xlsx --month 2026-10      # 文件含多个月时只取某月
     python3 store_report.py 售出明细.xlsx --weeks natural      # 周按 周一~周日 划分（默认 1-7日=W1）
-    python3 store_report.py 售出明细.xlsx --targets 目标.json   # 指定目标文件（默认自动用 targets/<YYYY-MM>.json）
+    python3 store_report.py 售出明细.xlsx --targets 目标.json   # 指定目标文件（默认 targets/<门店>/<YYYY-MM>.json）
+    python3 store_report.py 售出明细.xlsx --store Morumbi      # 指定门店（默认按「权益归属门店」自动识别）
 
 指标口径见 README.md，与 2026-10 手工透视表结果逐项核对一致。
 """
@@ -32,7 +33,7 @@ REQUIRED_COLUMNS = ["类型", "分类", "名称", "数量", "支付方式", "支
 
 # 支付方式归类。新出现的支付方式默认按「现金类」处理，并在「数据检查」中提示。
 KNOWN_PAY_METHODS = {
-    "代金券", "开业券 Voucher comprado online", "套餐", "免单类",
+    "代金券", "开业券 Voucher comprado online", "套餐", "免单类", "品项",
     "现金", "信用卡 Crédito à vista", "信用卡分期 Crédito parcelado", "银行卡 Débito", "PIX",
 }
 
@@ -43,7 +44,7 @@ STAFF_METRICS = ["业绩", "营业额", "总客次", "成交人数", "二次券�
 STAFF_HELPERS = ["新客客次"]
 CUSTOMER_TYPES = ["新客客次", "会员客次", "网红/邀约"]
 UNASSIGNED = "未指定员工（线上购券）"
-TARGETS_DIR = Path(__file__).resolve().parent / "targets"
+TARGETS_DIR = Path(__file__).resolve().parent / "targets"  # targets/<门店>/<YYYY-MM>.json
 RATE_METRICS = {"新客成交率", "体验客单价", "成交客单", "叠加率"}  # 比率型目标：任何时间段的目标都一样
 METRIC_ALIASES = {"客单价": "体验客单价"}
 WEEKDAYS = "一二三四五六日"
@@ -207,11 +208,19 @@ def pay_kind(method):
         return "开业券"
     if "免单" in m:
         return "免单"
-    if m.startswith("代金券"):
+    if m.startswith("代金券") or m.startswith("品项"):  # 品项 = 体验券里包含的单个项目的核销
         return "代金券"
     if m.startswith("套餐"):
         return "套餐"
     return "现金类"
+
+
+def detect_store(df):
+    """按「权益归属门店」出现最多的值识别门店：「São Paulo - Unidade Morumbi」→「Morumbi」。"""
+    if "权益归属门店" not in df.columns or df["权益归属门店"].dropna().empty:
+        return None
+    full = df["权益归属门店"].dropna().map(clean_text).mode().iloc[0]
+    return full.split("Unidade", 1)[-1].strip() if "Unidade" in full else full
 
 
 def load(path, month=None):
@@ -235,10 +244,19 @@ def load(path, month=None):
     is_refund = df["单据类型"].astype(str).str.contains("退款") if "单据类型" in df.columns else False
     df["客次符号"] = 1
     df.loc[is_refund, "客次符号"] = -1
+    # 组合支付：系统把同一行的第二种付款拆成「数量 0」的行（员工常为空）。这种行不算客次，员工跟原行走。
+    df["拆分行"] = (df["数量"] == 0) & ~is_refund
+    if "单据编号" in df.columns:
+        owner = (df[~df["拆分行"]].dropna(subset=["员工"])
+                 .drop_duplicates(["单据编号", "名称"]).set_index(["单据编号", "名称"])["员工"])
+        keys = pd.MultiIndex.from_frame(df[["单据编号", "名称"]])
+        df["员工"] = df["员工"].fillna(pd.Series(owner.reindex(keys).values, index=df.index).where(df["拆分行"]))
+    df["客次"] = df["客次符号"].where(~df["拆分行"], 0)
     cust_id = df["客户编号"].map(clean_text) if "客户编号" in df.columns else None
     df["客户"] = cust_id.fillna(df["客户名称"]) if cust_id is not None else df["客户名称"]
 
     months = sorted(df["日期"].dropna().dt.to_period("M").astype(str).unique())
+    df.attrs["store"] = detect_store(df)
     if month:
         df = df[df["日期"].dt.to_period("M").astype(str) == month]
         if df.empty:
@@ -256,17 +274,23 @@ def paying_customers(rows, value_col):
     return int((net > 0).sum())
 
 
+def voucher_sales(right):
+    """现场掏钱买的代金券：现金/卡/PIX 付款，或组合支付里有现金部分（现金类支付 > 0）。"""
+    return right[(right["分类"] == "代金券") & ((right["支付归类"] == "现金类") | (right["现金类支付"] > 0))]
+
+
 def compute(df):
     proj = df[df["类型"] == "项目"]
     right = df[df["类型"] == "权益"]
     package = right[right["分类"] == "套餐"]
-    voucher_sale = right[(right["分类"] == "代金券") & (right["支付归类"] == "现金类")]
+    voucher_sale = voucher_sales(right)
     m = {
-        "权益金": right.loc[right["支付归类"] != "开业券", "支付金额"].sum(),
+        # 线上开业券、用代金券/套餐抵扣的部分都不是本期新收的钱
+        "权益金": right.loc[~right["支付归类"].isin(["开业券", "代金券", "套餐"]), "支付金额"].sum(),
         "营业额": proj["支付金额"].sum(),
-        "总客次": int(proj["客次符号"].sum()),
-        "会员客次": int(proj.loc[proj["支付归类"] == "套餐", "客次符号"].sum()),
-        "网红/邀约": int(proj.loc[proj["支付归类"] == "免单", "客次符号"].sum()),
+        "总客次": int(proj["客次"].sum()),
+        "会员客次": int(proj.loc[proj["支付归类"] == "套餐", "客次"].sum()),
+        "网红/邀约": int(proj.loc[proj["支付归类"] == "免单", "客次"].sum()),
         "成交人数": paying_customers(package, "现金类支付"),
         "二次券成交数": int(voucher_sale["数量"].sum()),
         "二次券成交人数": paying_customers(voucher_sale, "数量"),
@@ -287,13 +311,13 @@ def mix_table(proj, keys):
     cols = ["总客次", *CUSTOMER_TYPES, "客户人数", "营业额"]
     if proj.empty:
         return pd.DataFrame(columns=cols)
-    sign = proj["客次符号"]
+    sign = proj["客次"]
     p = proj.assign(总客次=sign,
                     会员客次=sign.where(proj["支付归类"] == "套餐", 0),
                     **{"网红/邀约": sign.where(proj["支付归类"] == "免单", 0)})
     p["新客客次"] = p["总客次"] - p["会员客次"] - p["网红/邀约"]
     t = p.groupby(keys)[["总客次", *CUSTOMER_TYPES, "支付金额"]].sum().rename(columns={"支付金额": "营业额"})
-    per_customer = p.groupby([*keys, "客户"])["客次符号"].sum().gt(0)
+    per_customer = p.groupby([*keys, "客户"])["客次"].sum().gt(0)
     t["客户人数"] = per_customer.groupby(level=list(range(len(keys)))).sum()
     return t[cols].sort_values("总客次", ascending=False)
 
@@ -326,6 +350,7 @@ class Report:
     week_defs: list                # [(标签, 开始日, 结束日)]，整月所有周
     daily: list                    # [(日期, 指标)]，从月初到最后一天
     targets: object = None         # Targets 或 None
+    store: str = None              # 门店名，例如 Ibirapuera
 
 
 def build(df, week_mode):
@@ -358,7 +383,7 @@ def build(df, week_mode):
     category_weeks = {
         metric: pd.DataFrame({text: in_week(proj, ws, we).groupby("分类")[col].sum()
                               for text, ws, we in active_weeks}).reindex(categories.index).fillna(0)
-        for metric, col in [("总客次", "客次符号"), ("营业额", "支付金额")]
+        for metric, col in [("总客次", "客次"), ("营业额", "支付金额")]
     }
     first_day = date(start.year, start.month, 1)
     days = [first_day + timedelta(days=n) for n in range((end - first_day).days + 1)]
@@ -378,7 +403,17 @@ def checks(df, months, month_arg, sheet, staff):
     if unknown:
         out.append(bi(f"⚠ 出现新的支付方式，已按「现金类」计入权益金/二次券：{'、'.join(unknown)}",
                       f"Nova forma de pagamento, contada como dinheiro/cartão: {', '.join(unknown)}"))
-    types = sorted(set(df["类型"].dropna()) - {"项目", "权益"})
+    products = df[df["类型"] == "产品"]
+    if len(products):
+        out.append(bi(f"产品销售 {products['数量'].sum():.0f} 件，合计 R$ {products['支付金额'].sum():,.2f}"
+                      f"（{'、'.join(products['名称'].dropna().unique())}），不计入权益金和营业额。",
+                      f"Venda de produtos: {products['数量'].sum():.0f} un., R$ {products['支付金额'].sum():,.2f} "
+                      f"({', '.join(products['名称'].dropna().unique())}) — fora de vendas e receita."))
+    splits = int(df["拆分行"].sum())
+    if splits:
+        out.append(bi(f"{splits} 行是组合支付拆出来的「数量 0」行：金额照算，不算客次，员工跟原行。",
+                      f"{splits} linhas de pagamento dividido (qtd. 0): valor conta, não contam como atendimento."))
+    types = sorted(set(df["类型"].dropna()) - {"项目", "权益", "产品"})
     if types:
         out.append(bi(f"⚠ 出现未识别的类型（只计入叠加率的数量合计）：{'、'.join(types)}",
                       f"Tipo desconhecido (só entra no total de itens): {', '.join(types)}"))
@@ -414,9 +449,14 @@ class Targets:
     month: str
 
 
-def load_targets(path, start):
-    """读目标 JSON（格式见 targets/2026-10.json）；没指定路径时找 targets/<YYYY-MM>.json，找不到返回 None。"""
-    path = Path(path) if path else TARGETS_DIR / f"{start:%Y-%m}.json"
+def load_targets(path, start, store):
+    """读目标 JSON（格式见 targets/Ibirapuera/2026-10.json）；没指定路径时找 targets/<门店>/<YYYY-MM>.json。
+    找不到返回 None（不同门店目标不同，绝不拿别的门店的目标凑数）。"""
+    if not path:
+        if not store:
+            return None
+        path = TARGETS_DIR / store / f"{start:%Y-%m}.json"
+    path = Path(path)
     if not path.exists():
         return None
     doc = json.loads(path.read_text(encoding="utf-8"))
@@ -429,7 +469,8 @@ def load_targets(path, start):
     if not daily:  # 没给每日目标就按天平均
         daily = {date(start.year, start.month, d): 1.0 for d in range(1, last + 1)}
     total = sum(daily.values())
-    return Targets(goals, {d: v / total for d, v in daily.items()}, path.name, doc.get("月份", f"{start:%Y-%m}"))
+    source = f"{path.parent.name}/{path.name}"
+    return Targets(goals, {d: v / total for d, v in daily.items()}, source, doc.get("月份", f"{start:%Y-%m}"))
 
 
 def period_goal(tg, metric, first, last):
@@ -633,7 +674,7 @@ def write_staff_values(ws, row, col0, m, bold=False, fill=None):
 
 def write_main_sheet(ws, rep, source_name):
     col0 = 3  # C 列开始放指标，与手工模板一致
-    ws["A1"] = f"门店经营数据 Dados da Loja  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["A1"] = f"门店经营数据 Dados da Loja  {period(rep)}"
     ws["A1"].font = font(size=14, bold=True)
     note(ws, 2, 1, bi(f"数据来源：{source_name}　生成时间：{datetime.now():%Y-%m-%d %H:%M}　"
                       f"灰色「计算用」列为公式的底数；口径见「{SHEETS['指标说明']}」",
@@ -713,6 +754,12 @@ def write_main_sheet(ws, rep, source_name):
         ws.column_dimensions[letter].width = w
     ws.freeze_panes = "C1"
     landscape(ws)
+
+
+def period(rep):
+    """标题里的「门店 · 日期区间」。"""
+    store = f"{rep.store} · " if rep.store else ""
+    return f"{store}{rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
 
 
 def landscape(ws):
@@ -797,7 +844,7 @@ def short_week(label):
 
 def write_category_sheet(wb, rep):
     ws = wb.create_sheet(SHEETS["项目分类"])
-    ws["A1"] = f"项目分类统计 Categorias de Serviço  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["A1"] = f"项目分类统计 Categorias de Serviço  {period(rep)}"
     ws["A1"].font = font(size=14, bold=True)
     note(ws, 2, 1, bi("只统计类型=项目（客人实际做的项目）；新客/会员/网红 的划分与经营报表一致；平均单价=营业额÷总客次。"
                       f"各项目明细见「{SHEETS['项目明细']}」。",
@@ -812,7 +859,7 @@ def write_category_sheet(wb, rep):
     landscape(ws)
 
     ws = wb.create_sheet(SHEETS["项目明细"])
-    ws["A1"] = f"项目明细 Serviços  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["A1"] = f"项目明细 Serviços  {period(rep)}"
     ws["A1"].font = font(size=14, bold=True)
     note(ws, 2, 1, bi("每个项目做了多少次、谁在做（新客/会员/网红）、带来多少营业额；按分类分组，组内按客次排序。",
                       "Quantas vezes cada serviço foi feito, para quem (novos/pacote/influencers) e quanto rendeu; "
@@ -832,7 +879,7 @@ def write_target_sheet(wb, rep):
     ws = wb.create_sheet(SHEETS["目标达成"])
     tg = rep.targets
     progress, remaining, rows = target_summary(rep)
-    ws["A1"] = f"目标达成 Metas  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["A1"] = f"目标达成 Metas  {period(rep)}"
     ws["A1"].font = font(size=14, bold=True)
     note(ws, 2, 1, bi(f"目标来源：{tg.source}。✓ = 达到同期目标（按每日目标累计到 {dm(rep.end)}），✗ = 落后。"
                       f"口径见「{SHEETS['指标说明']}」。",
@@ -1125,7 +1172,7 @@ def write_dashboard(wb, rep):
     for j in range(1, 18):
         ws.column_dimensions[get_column_letter(j)].width = 11
     ws.column_dimensions["A"].width = 2
-    ws["B1"] = f"门店经营看板 Painel da Loja  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["B1"] = f"门店经营看板 Painel da Loja  {period(rep)}"
     ws["B1"].font = font(size=16, bold=True)
     hint_zh = f"数值明细见「{SHEETS['经营报表']}」「{SHEETS['项目分类']}」；口径见「{SHEETS['指标说明']}」。"
     hint_pt = f"Detalhes nas abas «{SHEETS['经营报表']}» e «{SHEETS['项目分类']}»; definições em «{SHEETS['指标说明']}»."
@@ -1283,7 +1330,7 @@ def write_report(path, df, rep, notes, source_name, week_mode):
     # 核对明细（相当于原来的透视表）
     right = df[df["类型"] == "权益"]
     package = right[(right["分类"] == "套餐") & (right["现金类支付"] != 0)]
-    voucher_sale = right[(right["分类"] == "代金券") & (right["支付归类"] == "现金类")]
+    voucher_sale = voucher_sales(right)
     write_detail(wb, SHEETS["套餐成交明细"], package, "现金类支付")
     write_detail(wb, SHEETS["二次券成交明细"], voucher_sale, "支付金额")
 
@@ -1315,23 +1362,32 @@ def main(argv=None):
     ap.add_argument("--month", help="只统计某个月，例如 2026-10")
     ap.add_argument("--weeks", choices=["fixed", "natural"], default="fixed",
                     help="fixed: 1-7日=W1…（默认）；natural: 周一~周日")
-    ap.add_argument("--targets", help="目标 JSON，默认自动找 targets/<YYYY-MM>.json")
+    ap.add_argument("--targets", help="目标 JSON，默认 targets/<门店>/<YYYY-MM>.json")
+    ap.add_argument("--store", help="门店名（例如 Ibirapuera、Morumbi），默认按「权益归属门店」识别")
     args = ap.parse_args(argv)
 
     df, sheet, months = load(args.input, args.month)
     rep = build(df, args.weeks)
-    rep.targets = load_targets(args.targets, rep.start)
+    rep.store = args.store or df.attrs.get("store")
+    rep.targets = load_targets(args.targets, rep.start, rep.store)
     notes = checks(df, months, args.month, sheet, rep.staff)
+    notes.insert(0, bi(f"门店：{rep.store or '未识别'}" + ("（--store 指定）" if args.store else "（按权益归属门店识别）"),
+                       f"Loja: {rep.store or 'não identificada'}"))
     if rep.targets:
-        notes.append(f"目标文件：{rep.targets.source}（{'、'.join(rep.targets.goals)}）。")
+        notes.append(bi(f"目标文件：{rep.targets.source}（{'、'.join(rep.targets.goals)}）。",
+                        f"Metas: {rep.targets.source} ({', '.join(pt_of(k) or k for k in rep.targets.goals)})."))
         if rep.targets.month != f"{rep.start:%Y-%m}":
-            notes.append(f"⚠ 目标文件写的是 {rep.targets.month}，数据是 {rep.start:%Y-%m}，请确认目标是否用对。")
+            notes.append(bi(f"⚠ 目标文件写的是 {rep.targets.month}，数据是 {rep.start:%Y-%m}，请确认目标是否用对。",
+                            f"O arquivo de metas é de {rep.targets.month} e os dados de {rep.start:%Y-%m}."))
     else:
-        notes.append(f"没有 {rep.start:%Y-%m} 的目标文件（targets/{rep.start:%Y-%m}.json），本次报表不含目标达成。")
-    out = Path(args.output or f"门店经营报表_{rep.start:%Y%m%d}_{rep.end:%Y%m%d}.xlsx")
+        notes.append(bi(f"没有 {rep.store} {rep.start:%Y-%m} 的目标文件（targets/{rep.store}/{rep.start:%Y-%m}.json），"
+                        f"本次报表不含目标达成。",
+                        f"Sem metas para {rep.store} {rep.start:%Y-%m}; relatório sem acompanhamento de metas."))
+    store_tag = f"{rep.store}_" if rep.store else ""
+    out = Path(args.output or f"门店经营报表_{store_tag}{rep.start:%Y%m%d}_{rep.end:%Y%m%d}.xlsx")
     write_report(out, df, rep, notes, Path(args.input).name, args.weeks)
 
-    print(f"已生成：{out}")
+    print(f"已生成：{out}（门店 {rep.store}）")
     print(f"区间：{rep.start} ~ {rep.end}")
     print("月度总数据：" + "，".join(f"{k} {fmt(k, rep.month[k])}" for k in MONTH_METRICS))
     for label, m in rep.weeks:

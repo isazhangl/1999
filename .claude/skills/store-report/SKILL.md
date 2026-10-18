@@ -20,6 +20,8 @@ user-invocable: true
    mkdir -p reports
    python3 -I analytics/store_report/store_report.py <输入.xlsx> -o "reports/门店经营报表_<开始>_<结束>.xlsx"
    ```
+   - 门店会按「权益归属门店」自动识别，输出文件名用 `reports/门店经营报表_<门店>_<开始>_<结束>.xlsx`。
+     识别不出来，或用户说的门店和识别结果不一致 → 问用户，然后加 `--store <门店>`。
    - 文件跨多个月 → 问用户要哪个月，或加 `--month YYYY-MM`。
    - 用户说要按自然周 → 加 `--weeks natural`。
 3. 重算公式（必须做）：报表里有公式，没有缓存值时，用户在 Excel「受保护的视图」或 App 预览里会看到空格。
@@ -33,12 +35,14 @@ user-invocable: true
    - 项目分类：客次/营业额占比最高的分类和项目，新客 vs 会员偏好的差异
    - 脚本输出里所有 ⚠ 提示（新支付方式、跨月、缺日期等），这些可能影响口径，必须告诉用户
 5. 不要提交输入或输出的 Excel。报表本身是中葡双语（给巴西同事看），给用户的文字汇报用中文。
-6. 有目标时（自动读 `analytics/store_report/targets/<YYYY-MM>.json`）汇报里加上各目标的月达成率、同期达成 ✓/✗、
+6. 门店：Ibirapuera（第一家）、Morumbi（第二家）。两家都发来时各出一份报表，汇报时可以简单对比。
+7. 有目标时（自动读 `analytics/store_report/targets/<YYYY-MM>.json`）汇报里加上各目标的月达成率、同期达成 ✓/✗、
    以及权益金/营业额「剩余营业日日均需完成」。没有当月目标文件时提醒用户发目标。
 
 ## 用户发来新目标时
 
-按 `targets/2026-10.json` 的格式写 `analytics/store_report/targets/<YYYY-MM>.json`（月目标 + 每日目标），提交并推送
+目标按门店分开：按 `targets/Ibirapuera/2026-10.json` 的格式写 `analytics/store_report/targets/<门店>/<YYYY-MM>.json`
+（月目标 + 每日目标；用户只给每日目标表时它就是权益金目标），提交并推送
 （目标文件不含客户信息，可以入库）。用户只给总数要求调整时（例如「总目标降到 X，其他按比例」），每日目标按比例缩放、
 四舍五入到整数、零头放在最后一天，保证合计等于新总数。「客单价」= 体验客单价；比率目标写小数。
 

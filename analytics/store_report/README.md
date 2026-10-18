@@ -11,9 +11,15 @@ python3 analytics/store_report/store_report.py 售出明细.xlsx -o reports/门�
 python3 analytics/store_report/store_report.py 售出明细.xlsx --month 2026-10      # 文件含多个月时只取某月
 python3 analytics/store_report/store_report.py 售出明细.xlsx --weeks natural      # 周一~周日 自然周
 python3 analytics/store_report/store_report.py 售出明细.xlsx --targets 目标.json  # 指定目标文件
+python3 analytics/store_report/store_report.py 售出明细.xlsx --store Morumbi      # 指定门店
 ```
 
-默认自动读取 `analytics/store_report/targets/<YYYY-MM>.json` 作为当月目标；没有这个文件就不出目标相关内容。
+**多门店**：门店按明细里出现最多的「权益归属门店」自动识别（`São Paulo - Unidade Morumbi` → `Morumbi`），
+也可以用 `--store` 指定。门店名会写进所有标题和默认文件名（`门店经营报表_<门店>_<开始>_<结束>.xlsx`）。
+目标按门店存：`analytics/store_report/targets/<门店>/<YYYY-MM>.json`，找不到就不出目标相关内容，
+绝不会拿别的门店的目标凑数。现有：Ibirapuera、Morumbi 的 2026-10。
+
+**输入格式**：表头不在第一行也可以（收银系统原始导出第一行是「售出明细表」标题，表头在第 4 行），脚本会自己找。
 
 输入：只要 Excel 里有一个 sheet 含这些列即可（优先读名为「售出明细表」的 sheet，其他透视表 sheet 会被忽略）：
 类型、分类、名称、数量、支付方式、支付金额、现金类支付、员工、客户名称、账务日期（客户编号、单据类型可选）。
@@ -41,7 +47,7 @@ python3 analytics/store_report/store_report.py 售出明细.xlsx --targets 目�
 
 | 指标 | 口径 |
 |---|---|
-| 权益金 | 类型=权益 的支付金额合计，排除「开业券 Voucher comprado online」（线上已付）；退款为负数抵扣 |
+| 权益金 | 类型=权益 的支付金额合计，排除「开业券 Voucher comprado online」（线上已付）以及用代金券/套餐抵扣的部分（不是新收的钱）；退款为负数抵扣 |
 | 营业额 | 类型=项目 的支付金额合计（含代金券/套餐/免单核销的项目价值） |
 | 总客次 | 类型=项目 的行数（退款单扣减） |
 | 会员客次 | 类型=项目 且 支付方式=套餐 |
@@ -49,7 +55,7 @@ python3 analytics/store_report/store_report.py 售出明细.xlsx --targets 目�
 | 新客客次 | 总客次 − 会员客次 − 网红/邀约 |
 | 成交人数 | 类型=权益、分类=套餐、现金类支付>0 的客户数（去重） |
 | 成交客单 | 套餐现金类支付合计 ÷ 成交人数 |
-| 二次券成交数 | 类型=权益、分类=代金券、支付方式不是 代金券/开业券/套餐/免单类 的数量合计（张） |
+| 二次券成交数 | 类型=权益、分类=代金券、现场掏钱买的券（现金/卡/PIX 付款，或组合支付里有现金部分）的数量合计（张） |
 | 体验客单价 | 营业额 ÷ 总客次 |
 | 叠加率 | 全部行「数量」合计 ÷ 总客次 |
 | 新客成交率 | 成交人数 ÷ 新客客次 × 100%（新客客次为 0 时留空） |
@@ -80,6 +86,9 @@ python3 analytics/store_report/store_report.py 售出明细.xlsx --targets 目�
 
 ## 其他说明
 
+- **组合支付**：一行用两种方式付款时，系统会多出一行「数量 0」的拆分行。金额照算，不算客次，员工跟原行（2026-10 Morumbi 有 3 行）。
+- **「品项」支付** = 体验券里包含的单个项目的核销，按代金券核销处理（算新客客次）。
+- **类型=产品**（零售产品，如护发油）不计入权益金和营业额，在「数据检查」里单独列出。
 - **周度**：默认 1–7 日=W1、8–14=W2、15–21=W3、22–28=W4、29 日–月底=W5（按账务日期）；还没到的周留空，进行中的周标「截至 xx/xx」。
 - **未指定员工（线上购券）**：明细里没填员工的记录（多为客人线上买券），单列一行，保证员工合计 = 月度总数。
 - **员工名**：自动合并多余空格（如 `Thalita  Silvestre` → `Thalita Silvestre`）。
