@@ -35,9 +35,10 @@ KNOWN_PAY_METHODS = {
 }
 
 MONTH_METRICS = ["权益金", "营业额", "总客次", "会员客次", "新客客次", "网红/邀约",
-                 "成交人数", "成交客单", "二次券成交数", "体验客单价", "叠加率"]
+                 "成交人数", "成交客单", "二次券成交数", "体验客单价", "叠加率", "新客成交率"]
 HELPER_METRICS = ["套餐成交金额", "数量合计"]
-STAFF_METRICS = ["业绩", "营业额", "总客次", "成交人数", "二次券成交人数"]
+STAFF_METRICS = ["业绩", "营业额", "总客次", "成交人数", "二次券成交人数", "新客成交率"]
+STAFF_HELPERS = ["新客客次"]
 CUSTOMER_TYPES = ["新客客次", "会员客次", "网红/邀约"]
 UNASSIGNED = "未指定员工（线上购券）"
 UNCATEGORIZED = "（未分类）"
@@ -45,7 +46,7 @@ UNCATEGORIZED = "（未分类）"
 METRIC_FORMATS = {
     "权益金": "#,##0.00", "营业额": "#,##0.00", "成交客单": "#,##0", "体验客单价": "#,##0.00",
     "叠加率": "0.00", "套餐成交金额": "#,##0.00", "业绩": "#,##0.00", "平均单价": "#,##0.00",
-    "客次占比": "0.0%", "营业额占比": "0.0%",
+    "客次占比": "0.0%", "营业额占比": "0.0%", "新客成交率": "0.00%",
 }
 
 DEFINITIONS = [
@@ -60,10 +61,13 @@ DEFINITIONS = [
     ("二次券成交数", "类型=权益、分类=代金券，且支付方式不是 代金券/开业券/套餐/免单类（即客人现场掏钱买券）的「数量」合计，单位：张。"),
     ("体验客单价", "营业额 ÷ 总客次（表内公式）。"),
     ("叠加率", "数量合计 ÷ 总客次（表内公式）。数量合计 = 明细表全部行（项目+权益）的「数量」合计。"),
+    ("新客成交率", "成交人数 ÷ 新客客次 × 100%（表内公式）。新客客次为 0 时留空。"),
     ("员工·业绩", "该员工名下的权益金（卖套餐+卖券收到的钱，口径同「权益金」）。明细里「实业绩」列全为 0，故不用。"),
     ("员工·营业额/总客次", "该员工名下的项目营业额 / 项目行数，口径同上。"),
     ("员工·成交人数", "该员工名下买套餐的客户人数（去重）。"),
     ("员工·二次券成交人数", "该员工名下现场掏钱买代金券的客户人数（去重）。"),
+    ("员工·新客成交率", "该员工名下成交人数 ÷ 该员工服务的新客客次（灰色「计算用:新客客次」列）。"
+                     "只卖不做项目的员工新客客次为 0，成交率留空。"),
     ("项目分类", "类型=项目 的行按收银系统「分类」汇总；新客/会员/网红 的划分与上面客次口径相同；"
                 "客户人数=做过该分类项目的去重客户数；平均单价=营业额÷总客次。"),
     ("周度划分", "默认：每月 1-7日=W1、8-14日=W2、15-21日=W3、22-28日=W4、29日-月底=W5（按「账务日期」）。"
@@ -169,6 +173,7 @@ def compute(df):
     m["成交客单"] = m["套餐成交金额"] / m["成交人数"] if m["成交人数"] else 0
     m["体验客单价"] = m["营业额"] / m["总客次"] if m["总客次"] else 0
     m["叠加率"] = m["数量合计"] / m["总客次"] if m["总客次"] else 0
+    m["新客成交率"] = m["成交人数"] / m["新客客次"] if m["新客客次"] else None
     m["业绩"] = m["权益金"]
     return m
 
@@ -333,6 +338,10 @@ def note(ws, row, col, text):
 
 # ---------------------------------------------------------------- 经营报表 sheet
 
+def rate_formula(num_col, den_col, row):
+    return f'=IF({den_col}{row}=0,"",{num_col}{row}/{den_col}{row})'
+
+
 def write_metric_row(ws, row, col0, m):
     """月度/周度数据行。派生指标写公式，引用同行的基础数与右侧「计算用」列。"""
     cols = {k: get_column_letter(col0 + i) for i, k in enumerate(MONTH_METRICS)}
@@ -342,6 +351,7 @@ def write_metric_row(ws, row, col0, m):
         "成交客单": f"=IF({cols['成交人数']}{row}=0,0,{hcols['套餐成交金额']}{row}/{cols['成交人数']}{row})",
         "体验客单价": f"=IF({cols['总客次']}{row}=0,0,{cols['营业额']}{row}/{cols['总客次']}{row})",
         "叠加率": f"=IF({cols['总客次']}{row}=0,0,{hcols['数量合计']}{row}/{cols['总客次']}{row})",
+        "新客成交率": rate_formula(cols["成交人数"], cols["新客客次"], row),
     }
     for k, letter in cols.items():
         cell = ws[f"{letter}{row}"]
@@ -362,13 +372,33 @@ def write_metric_header(ws, row, col0):
         style_header(ws.cell(row, col0 + len(MONTH_METRICS) + 1 + i, f"计算用:{k}"), helper=True)
 
 
+def staff_columns(col0):
+    return {k: get_column_letter(col0 + j) for j, k in enumerate(STAFF_METRICS + STAFF_HELPERS)}
+
+
+def write_staff_header(ws, row, col0):
+    for k, letter in staff_columns(col0).items():
+        helper = k in STAFF_HELPERS
+        style_header(ws[f"{letter}{row}"], helper=helper)
+        ws[f"{letter}{row}"] = f"计算用:{k}" if helper else k
+
+
 def write_staff_values(ws, row, col0, m, bold=False, fill=None):
-    for j, k in enumerate(STAFF_METRICS):
-        c = ws.cell(row, col0 + j, round(m[k], 2))
-        style_value(c, k)
+    """员工行。新客成交率写公式：成交人数 ÷ 右侧灰色「计算用:新客客次」。m=None 时写合计行（上方各行求和）。"""
+    col = staff_columns(col0)
+    for k, letter in col.items():
+        c = ws[f"{letter}{row}"]
+        helper = k in STAFF_HELPERS
+        if k == "新客成交率":
+            c.value = rate_formula(col["成交人数"], col["新客客次"], row)
+        elif isinstance(m, tuple):
+            c.value = f"=SUM({letter}{m[0]}:{letter}{m[1]})"
+        else:
+            c.value = round(m[k], 2)
+        style_value(c, k, helper=helper)
         if bold:
-            c.font = font(bold=True)
-        if fill:
+            c.font = font(bold=True, italic=helper, color=MUTED if helper else "000000")
+        if fill and not helper:
             c.fill = fill
 
 
@@ -401,8 +431,7 @@ def write_main_sheet(ws, rep, source_name):
 
     # 员工达成 · 月度数据（与手工模板一致）
     r = last_week_row + 3
-    for i, k in enumerate(STAFF_METRICS):
-        style_header(ws.cell(r, 4 + i, k))
+    write_staff_header(ws, r, 4)
     ws.cell(r + 1, 1, "员工达成").font = font(bold=True)
     ws.cell(r + 1, 2, "月度数据").font = font(bold=True)
     for i, (name, m, _) in enumerate(rep.staff):
@@ -412,22 +441,17 @@ def write_main_sheet(ws, rep, source_name):
         write_staff_values(ws, row, 4, m)
     total_row = r + 1 + len(rep.staff)
     label_cell(ws, total_row, 3, "合计", bold=True)
-    for j, k in enumerate(STAFF_METRICS):
-        letter = get_column_letter(4 + j)
-        cell = ws.cell(total_row, 4 + j, f"=SUM({letter}{r + 1}:{letter}{total_row - 1})")
-        style_value(cell, k)
-        cell.font = font(bold=True)
+    write_staff_values(ws, total_row, 4, (r + 1, total_row - 1), bold=True)
     for letter in "DE":
         data_bar(ws, f"{letter}{r + 1}:{letter}{total_row - 1}")
-    note(ws, total_row + 1, 3, "注：同一客户找过多位员工成交时会各算一次，故人数合计可能大于月度去重人数。")
+    note(ws, total_row + 1, 3, "注：同一客户找过多位员工成交时会各算一次，故人数合计（及合计行的新客成交率）可能略高于月度总数据。")
 
     # 员工达成 · 月总周分：每位员工一块，先月度合计，再逐周
     r = total_row + 3
     ws.cell(r, 1, "员工周度数据").font = font(bold=True)
     style_header(ws.cell(r, 2, "员工"))
     style_header(ws.cell(r, 3, "期间"))
-    for j, k in enumerate(STAFF_METRICS):
-        style_header(ws.cell(r, 4 + j, k))
+    write_staff_header(ws, r, 4)
     row = r + 1
     for name, m, weeks in rep.staff:
         first = row
@@ -649,14 +673,21 @@ def write_dashboard(wb, rep):
 
     m = rep.month
     voucher_etc = m["权益金"] - m["套餐成交金额"]
+    rate = m["新客成交率"]
     tiles = [
-        ("权益金", f'"R$ "#,##0', m["权益金"], f"套餐 R$ {m['套餐成交金额']:,.0f} · 券及其他 R$ {voucher_etc:,.0f}"),
-        ("营业额", f'"R$ "#,##0', m["营业额"], "项目核销价值"),
-        ("总客次", "#,##0", m["总客次"], f"新客 {m['新客客次']} · 会员 {m['会员客次']} · 网红/邀约 {m['网红/邀约']}"),
+        ("权益金", '"R$ "#,##0', m["权益金"], f"套餐 R$ {m['套餐成交金额']:,.0f} · 券及其他 R$ {voucher_etc:,.0f}"),
+        ("营业额", '"R$ "#,##0', m["营业额"], "项目核销价值"),
+        ("总客次", "#,##0", m["总客次"], "做项目的人次"),
+        ("新客客次", "#,##0", m["新客客次"],
+         f"占总客次 {m['新客客次'] / m['总客次']:.0%}" if m["总客次"] else ""),
+        ("会员客次", "#,##0", m["会员客次"], "套餐核销"),
+        ("网红/邀约", "#,##0", m["网红/邀约"], "免单类"),
         ("成交人数", "#,##0", m["成交人数"], "买套餐的客户（去重）"),
-        ("成交客单", f'"R$ "#,##0', m["成交客单"], "套餐金额 ÷ 成交人数"),
+        ("新客成交率", "0.00%", rate if rate is not None else "-",
+         f"成交人数 {m['成交人数']} ÷ 新客客次 {m['新客客次']}"),
+        ("成交客单", '"R$ "#,##0', m["成交客单"], "套餐金额 ÷ 成交人数"),
         ("二次券成交数", "#,##0", m["二次券成交数"], f"现场买券的客户 {m['二次券成交人数']} 人"),
-        ("体验客单价", f'"R$ "#,##0.00', m["体验客单价"], "营业额 ÷ 总客次"),
+        ("体验客单价", '"R$ "#,##0.00', m["体验客单价"], "营业额 ÷ 总客次"),
         ("叠加率", "0.00", m["叠加率"], "数量合计 ÷ 总客次"),
     ]
     for i, (label, fmt, value, sub) in enumerate(tiles):
@@ -667,12 +698,13 @@ def write_dashboard(wb, rep):
             for cc in range(col, col + 3):
                 ws.cell(rr, cc).fill = TILE_FILL
         ws.cell(row, col, label).font = font(size=10, color=MUTED)
-        v = ws.cell(row + 1, col, round(value, 2))
+        v = ws.cell(row + 1, col, round(value, 6) if isinstance(value, (int, float)) else value)
         v.font, v.number_format = font(size=18, bold=True), fmt
         ws.cell(row + 2, col, sub).font = font(size=8, color=MUTED)
         for rr in range(row, row + 3):
             ws.cell(rr, col).alignment = Alignment(horizontal="left", vertical="center", indent=1)
         ws.row_dimensions[row + 1].height = 28
+    top = 4 + -(-len(tiles) // 4) * 4 + 1  # 卡片下方留一行再放图表
 
     ds, pos = write_chart_data(wb, rep)
     w0, w1 = pos["weeks"]
@@ -680,13 +712,14 @@ def write_dashboard(wb, rep):
     c0, c1 = pos["categories"]
     staff_height = max(7.5, 0.75 * (s1 - s0) + 2.5)
     cat_height = max(7.5, 0.75 * (c1 - c0) + 2.5)
-    ws.add_chart(make_chart(ds, w0, w1, [2, 3], "周度 权益金 vs 营业额（R$）", labels=True), "B13")
-    ws.add_chart(make_chart(ds, w0, w1, [4, 5, 6], "周度客次构成（新客/会员/网红）", stacked=True), "J13")
+    second = top + 16
+    ws.add_chart(make_chart(ds, w0, w1, [2, 3], "周度 权益金 vs 营业额（R$）", labels=True), f"B{top}")
+    ws.add_chart(make_chart(ds, w0, w1, [4, 5, 6], "周度客次构成（新客/会员/网红）", stacked=True), f"J{top}")
     ws.add_chart(make_chart(ds, s0, s1, [2, 3], "员工 业绩 vs 营业额（R$）", horizontal=True,
-                            height=staff_height), "B29")
+                            height=staff_height), f"B{second}")
     ws.add_chart(make_chart(ds, c0, c1, [2, 3, 4], "项目分类客次（按客户类型）", horizontal=True,
-                            stacked=True, height=cat_height), "J29")
-    below = 29 + int(max(staff_height, cat_height) / 0.53) + 2
+                            stacked=True, height=cat_height), f"J{second}")
+    below = second + int(max(staff_height, cat_height) / 0.53) + 2
     ws.add_chart(make_chart(ds, c0, c1, [5], "项目分类营业额（R$）", horizontal=True, labels=True,
                             height=cat_height), f"B{below}")
     landscape(ws)
@@ -733,8 +766,8 @@ def write_report(path, df, rep, notes, source_name, week_mode):
         ds.cell(i, 1, k).font = font(bold=True)
         ds.cell(i, 2, text).font = font()
         ds.cell(i, 2).alignment = Alignment(wrap_text=True, vertical="top")
-        if k in rep.month:
-            style_value(ds.cell(i, 3, round(rep.month[k], 2)), k)
+        if rep.month.get(k) is not None:
+            style_value(ds.cell(i, 3, round(rep.month[k], 6)), k)
         for j in (1, 2, 3):
             ds.cell(i, j).border = BORDER
     note(ds, len(DEFINITIONS) + 2, 1,
@@ -762,7 +795,11 @@ def write_report(path, df, rep, notes, source_name, week_mode):
     wb.save(path)
 
 
-def fmt(v):
+def fmt(k, v):
+    if v is None:
+        return "-"
+    if k == "新客成交率":
+        return f"{v:.2%}"
     return f"{v:,.2f}" if isinstance(v, float) else str(v)
 
 
@@ -783,16 +820,17 @@ def main(argv=None):
 
     print(f"已生成：{out}")
     print(f"区间：{rep.start} ~ {rep.end}")
-    print("月度总数据：" + "，".join(f"{k} {fmt(rep.month[k])}" for k in MONTH_METRICS))
+    print("月度总数据：" + "，".join(f"{k} {fmt(k, rep.month[k])}" for k in MONTH_METRICS))
     for label, m in rep.weeks:
         if m:
             print(f"  {label}：权益金 {m['权益金']:,.2f}，营业额 {m['营业额']:,.2f}，总客次 {m['总客次']}，"
-                  f"成交人数 {m['成交人数']}，二次券 {m['二次券成交数']}")
+                  f"成交人数 {m['成交人数']}，二次券 {m['二次券成交数']}，新客成交率 {fmt('新客成交率', m['新客成交率'])}")
     print("员工达成（月度｜各周业绩）：")
     for name, m, weeks in rep.staff:
         by_week = " / ".join(f"{label.split()[0]} {wm['业绩']:,.0f}" for label, wm in weeks)
         print(f"  {name}：业绩 {m['业绩']:,.2f}，营业额 {m['营业额']:,.2f}，总客次 {m['总客次']}，"
-              f"成交人数 {m['成交人数']}，二次券成交人数 {m['二次券成交人数']}｜{by_week}")
+              f"成交人数 {m['成交人数']}，二次券成交人数 {m['二次券成交人数']}，"
+              f"新客成交率 {fmt('新客成交率', m['新客成交率'])}｜{by_week}")
     print("项目分类（总客次｜新客/会员/网红｜营业额）：")
     total = rep.categories["总客次"].sum()
     for cat, x in rep.categories.iterrows():
