@@ -17,7 +17,7 @@ python3 analytics/store_report/store_report.py 售出明细.xlsx --store Morumbi
 **多门店**：门店按明细里出现最多的「权益归属门店」自动识别（`São Paulo - Unidade Morumbi` → `Morumbi`），
 也可以用 `--store` 指定。门店名会写进所有标题和默认文件名（`门店经营报表_<门店>_<开始>_<结束>.xlsx`）。
 目标按门店存：`analytics/store_report/targets/<门店>/<YYYY-MM>.json`，找不到就不出目标相关内容，
-绝不会拿别的门店的目标凑数。现有：Ibirapuera、Morumbi 的 2026-10。
+绝不会拿别的门店的目标凑数。现有 2026-10：Ibirapuera（权益金 260,000、营业额 126,000、总客次 350、新客成交率 20%、体验客单价 360）、Morumbi（权益金 140,000、营业额 100,000、总客次 250、新客成交率 20%）。
 
 **输入格式**：表头不在第一行也可以（收银系统原始导出第一行是「售出明细表」标题，表头在第 4 行），脚本会自己找。
 
