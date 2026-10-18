@@ -1,5 +1,8 @@
 # 门店经营报表（售出明细表 → 看板 / 目标达成 / 月度 / 周度 / 员工达成 / 项目分类）
 
+> 这就是门店**周报**：用户说「做周报」时，按 `.claude/skills/store-report/SKILL.md` 的步骤为每家门店出一份，
+> 并按 `.claude/skills/store-report/周报汇报模板.md` 写中文汇报。
+
 把收银系统导出的 **售出明细表** Excel 发给 Claude，就能拿到填好的经营报表，不用再自己做透视表。
 口径和 2026-10 手工透视表逐项核对过：权益金 78,102、营业额 64,043.94、总客次 247、会员客次 26、
 新客客次 212、网红/邀约 9、成交人数 18、成交客单 3,338、二次券成交数 79、体验客单价 259.29、叠加率 1.85。
@@ -7,7 +10,7 @@
 ## 用法
 
 ```bash
-python3 analytics/store_report/store_report.py 售出明细.xlsx -o reports/门店经营报表.xlsx
+python3 analytics/store_report/store_report.py 售出明细.xlsx -o reports/周报_Ibirapuera_20261001_20261018.xlsx
 python3 analytics/store_report/store_report.py 售出明细.xlsx --month 2026-10      # 文件含多个月时只取某月
 python3 analytics/store_report/store_report.py 售出明细.xlsx --weeks natural      # 周一~周日 自然周
 python3 analytics/store_report/store_report.py 售出明细.xlsx --targets 目标.json  # 指定目标文件
