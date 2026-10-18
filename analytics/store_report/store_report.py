@@ -55,6 +55,72 @@ METRIC_FORMATS = {
     "客次占比": "0.0%", "营业额占比": "0.0%", "新客成交率": "0.00%", "月达成率": "0.0%", "累计达成率": "0.0%",
 }
 
+# ---------------------------------------------------------------- 中葡双语
+# 表头、固定标签在保存前统一翻译（见 translate_workbook）；带数字/日期的句子在生成时直接写双语。
+PT = {
+    # 指标
+    "权益金": "Vendas Pacotes/Vouchers", "营业额": "Receita de Serviços", "总客次": "Total de Atendimentos",
+    "会员客次": "Atend. Clientes Pacote", "新客客次": "Atend. Novos Clientes", "网红/邀约": "Influencers/Convites",
+    "成交人数": "Fechamentos de Pacote", "成交客单": "Ticket Médio Pacote", "二次券成交数": "Vouchers Retorno Vendidos",
+    "体验客单价": "Ticket Médio Atendimento", "叠加率": "Itens por Atendimento", "新客成交率": "Conversão Novos Clientes",
+    "业绩": "Vendas", "二次券成交人数": "Clientes Voucher Retorno", "套餐成交金额": "Valor em Pacotes",
+    "数量合计": "Total de Itens", "客户人数": "Clientes Únicos", "客次占比": "% Atendimentos",
+    "营业额占比": "% Receita", "平均单价": "Preço Médio",
+    # 表头 / 标签
+    "分类": "Categoria", "项目名称": "Serviço", "月度合计": "Total do Mês", "合计": "Total", "员工": "Colaborador(a)",
+    "期间": "Período", "周": "Semana", "日期": "Data", "星期": "Dia", "指标": "Indicador", "名称": "Item",
+    "数量": "Qtd.", "单据编号": "Nº Documento", "客户名称": "Cliente", "支付方式": "Forma de Pagamento",
+    "金额": "Valor", "计算口径": "Como é calculado", "本期数值": "Valor do Período",
+    "数据检查 / 提示": "Verificação / Avisos", "月目标": "Meta do Mês", "实际": "Realizado",
+    "月达成率": "% Meta do Mês", "同期目标": "Meta até Hoje", "同期达成率": "% Meta até Hoje",
+    "剩余需完成": "Falta Atingir", "剩余日均需完成": "Necessário por Dia", "目标进度": "Progresso Esperado",
+    "剩余营业日": "Dias Abertos Restantes", "达成率": "% Atingido", "累计达成率": "% Acumulado",
+    "应达进度": "Progresso Esperado", "未指定员工（线上购券）": "Sem colaborador (voucher online)",
+    "（未分类）": "(Sem categoria)",
+    # 分区标题
+    "月度总数据": "Resumo do Mês", "周度数据": "Dados Semanais", "员工达成": "Desempenho da Equipe",
+    "月度数据": "Mensal", "员工周度数据": "Equipe por Semana", "月度目标达成": "Metas do Mês",
+    "周度目标达成": "Metas por Semana", "每日目标 vs 实际": "Meta Diária vs Realizado",
+    "按分类（月度）": "Por Categoria (Mês)", "按分类 · 周度客次": "Atendimentos por Categoria e Semana",
+    "按分类 · 周度营业额": "Receita por Categoria e Semana", "按项目（月度）": "Por Serviço (Mês)",
+    # 指标说明里的条目名
+    "员工·业绩": "Equipe · Vendas", "员工·营业额/总客次": "Equipe · Receita / Atendimentos",
+    "员工·成交人数": "Equipe · Fechamentos", "员工·二次券成交人数": "Equipe · Clientes Voucher Retorno",
+    "员工·新客成交率": "Equipe · Conversão Novos Clientes", "项目分类": "Categorias de Serviço",
+    "同期目标 / 同期达成率": "Meta até Hoje / % Meta até Hoje", "周目标 / 日目标": "Meta Semanal / Diária",
+    "周度划分": "Divisão das Semanas",
+}
+PT_SUFFIX = {"累计目标": "Meta Acumulada", "累计实际": "Realizado Acumulado", "累计": "Acumulado",
+             "目标": "Meta", "实际": "Realizado"}
+PT_WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+PT_MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+SHEETS = {"看板": "看板 Painel", "经营报表": "经营报表 Relatório", "目标达成": "目标达成 Metas",
+          "项目分类": "项目分类 Categorias", "项目明细": "项目明细 Serviços", "指标说明": "指标说明 Definições",
+          "套餐成交明细": "套餐成交明细 Pacotes", "二次券成交明细": "二次券成交明细 Vouchers",
+          "数据检查": "数据检查 Verificação", "图表数据": "图表数据 Dados Gráficos"}
+
+
+def pt_of(text):
+    """中文标签 → 葡语；支持「计算用:指标」「指标+目标/实际/累计…」这类组合，查不到返回 None。"""
+    if text in PT:
+        return PT[text]
+    if text.startswith("计算用:") and text[4:] in PT:
+        return f"Base: {PT[text[4:]]}"
+    for suffix, word in PT_SUFFIX.items():
+        if text.endswith(suffix) and text[:-len(suffix)] in PT:
+            return f"{PT[text[:-len(suffix)]]} – {word}"
+    return None
+
+
+def dm(d):
+    """日期写成「18/out」：中葡读者都不会把日和月看反。"""
+    return f"{d.day:02d}/{PT_MONTHS[d.month - 1]}"
+
+
+def bi(zh, pt):
+    return f"{zh} | {pt}"
+
+
 DEFINITIONS = [
     ("权益金", "类型=权益 的「支付金额」合计，排除支付方式=开业券(线上已付)。即门店当期卖出套餐+代金券收到的钱，退款为负数自动抵扣。"),
     ("营业额", "类型=项目 的「支付金额」合计（含代金券/套餐/免单核销的项目价值）。"),
@@ -84,6 +150,33 @@ DEFINITIONS = [
     ("周度划分", "默认：每月 1-7日=W1、8-14日=W2、15-21日=W3、22-28日=W4、29日-月底=W5（按「账务日期」）。"
                 "可用 --weeks natural 改成 周一~周日 的自然周。"),
 ]
+
+
+DEFINITIONS_PT = {
+    "权益金": "Soma do «valor pago» das linhas tipo 权益 (pacotes/vouchers), sem os vouchers comprados online (开业券). É o dinheiro que a loja recebeu vendendo pacotes e vouchers no período; estornos entram negativos.",
+    "营业额": "Soma do «valor pago» das linhas tipo 项目 (serviços), incluindo serviços pagos com voucher, pacote ou cortesia.",
+    "总客次": "Número de linhas tipo 项目 (cada serviço realizado = 1 atendimento; estornos descontam).",
+    "会员客次": "Linhas tipo 项目 pagas com pacote (套餐).",
+    "新客客次": "Total de atendimentos − atendimentos de pacote − influencers/convites (fórmula na planilha).",
+    "网红/邀约": "Linhas tipo 项目 pagas como cortesia (免单类).",
+    "成交人数": "Número de clientes (sem repetir) que compraram pacote com pagamento em dinheiro/cartão/PIX > 0.",
+    "成交客单": "Valor em pacotes ÷ fechamentos de pacote (fórmula). Valor em pacotes = «pagamento em dinheiro» das vendas de pacote.",
+    "二次券成交数": "Quantidade de vouchers vendidos na loja (pagos em dinheiro/cartão/PIX, não com voucher, pacote, cortesia ou voucher online).",
+    "体验客单价": "Receita de serviços ÷ total de atendimentos (fórmula).",
+    "叠加率": "Total de itens ÷ total de atendimentos (fórmula). Total de itens = soma da «quantidade» de todas as linhas.",
+    "新客成交率": "Fechamentos de pacote ÷ atendimentos de novos clientes × 100% (fórmula). Fica em branco se não houver novos clientes.",
+    "员工·业绩": "Vendas de pacotes/vouchers registradas no nome da colaboradora (mesmo critério de «Vendas Pacotes/Vouchers»). A coluna 实业绩 do sistema está toda zerada, por isso não é usada.",
+    "员工·营业额/总客次": "Receita de serviços / número de serviços realizados pela colaboradora.",
+    "员工·成交人数": "Clientes (sem repetir) que compraram pacote com a colaboradora.",
+    "员工·二次券成交人数": "Clientes (sem repetir) que compraram voucher de retorno na loja com a colaboradora.",
+    "员工·新客成交率": "Fechamentos da colaboradora ÷ atendimentos de novos clientes que ela fez (coluna cinza «Base»). Quem só vende e não atende fica em branco.",
+    "项目分类": "Serviços (linhas tipo 项目) agrupados pela «categoria» do sistema; novos/pacote/influencers seguem o mesmo critério; clientes únicos = clientes sem repetir; preço médio = receita ÷ atendimentos.",
+    "月达成率": "Realizado ÷ meta do mês. Metas vêm de targets/<AAAA-MM>.json (enviadas todo mês).",
+    "目标进度": "Quanto da meta do mês deveria estar feito até o último dia do relatório, somando as metas diárias (dias fechados = 0).",
+    "同期目标 / 同期达成率": "Indicadores somáveis (vendas, receita, atendimentos): meta até hoje = meta do mês × progresso esperado. Indicadores de taxa (conversão, ticket médio): meta até hoje = meta do mês. ≥ 100% = ✓, abaixo = ✗.",
+    "周目标 / 日目标": "Indicadores somáveis são divididos por dia na proporção das metas diárias e somados por semana; indicadores de taxa têm a mesma meta todo dia/semana.",
+    "周度划分": "Padrão: dias 1-7 = W1, 8-14 = W2, 15-21 = W3, 22-28 = W4, 29 ao fim do mês = W5 (pela data contábil). Com --weeks natural vira semana de segunda a domingo.",
+}
 
 
 # ---------------------------------------------------------------- 读取与清洗
@@ -239,9 +332,9 @@ def build(df, week_mode):
     start, end = df["日期"].min().date(), df["日期"].max().date()
     week_defs = []
     for label, ws, we in week_ranges(start.year, start.month, week_mode):
-        text = f"{label} {ws:%m/%d}-{we:%m/%d}"
+        text = f"{label} {dm(ws)}-{dm(we)}"
         if ws <= end < we:
-            text += f"（截至{end:%m/%d}）"
+            text += f"（截至/até {dm(end)}）"
         week_defs.append((text, ws, we))
     active_weeks = [w for w in week_defs if w[1] <= end]
 
@@ -274,28 +367,40 @@ def build(df, week_mode):
 
 
 def checks(df, months, month_arg, sheet, staff):
-    out = [f"读取 sheet「{sheet}」共 {len(df)} 行，账务日期 {df['日期'].min():%Y-%m-%d} ~ {df['日期'].max():%Y-%m-%d}。"]
+    """数据检查提示（中葡双语）。以 ⚠ 开头的会标红。"""
+    first, last = df["日期"].min(), df["日期"].max()
+    out = [bi(f"读取 sheet「{sheet}」共 {len(df)} 行，账务日期 {first:%Y-%m-%d} ~ {last:%Y-%m-%d}。",
+              f"Aba «{sheet}»: {len(df)} linhas, de {first:%d/%m/%Y} a {last:%d/%m/%Y}.")]
     if len(months) > 1 and not month_arg:
-        out.append(f"⚠ 文件包含多个月份（{', '.join(months)}），已合并统计；单月请加 --month。")
+        out.append(bi(f"⚠ 文件包含多个月份（{', '.join(months)}），已合并统计；单月请加 --month。",
+                      f"O arquivo tem vários meses ({', '.join(months)}) e foram somados; para um mês só use --month."))
     unknown = sorted(set(df["支付方式"].dropna()) - KNOWN_PAY_METHODS)
     if unknown:
-        out.append(f"⚠ 出现新的支付方式，已按「现金类」计入权益金/二次券：{'、'.join(unknown)}")
+        out.append(bi(f"⚠ 出现新的支付方式，已按「现金类」计入权益金/二次券：{'、'.join(unknown)}",
+                      f"Nova forma de pagamento, contada como dinheiro/cartão: {', '.join(unknown)}"))
     types = sorted(set(df["类型"].dropna()) - {"项目", "权益"})
     if types:
-        out.append(f"⚠ 出现未识别的类型（只计入叠加率的数量合计）：{'、'.join(types)}")
+        out.append(bi(f"⚠ 出现未识别的类型（只计入叠加率的数量合计）：{'、'.join(types)}",
+                      f"Tipo desconhecido (só entra no total de itens): {', '.join(types)}"))
     no_date = int(df["日期"].isna().sum())
     if no_date:
-        out.append(f"⚠ {no_date} 行没有账务日期，月度和员工数据已计入，周度数据未计入。")
+        out.append(bi(f"⚠ {no_date} 行没有账务日期，月度和员工数据已计入，周度数据未计入。",
+                      f"{no_date} linhas sem data: entram no mês e na equipe, mas não nas semanas."))
     for name, m, _ in staff:
         if name == UNASSIGNED:
-            out.append(f"⚠ 有记录没填员工：业绩 {m['业绩']:,.2f}、营业额 {m['营业额']:,.2f}、"
-                       f"客次 {m['总客次']}，在员工表单列为「{UNASSIGNED}」。")
+            out.append(bi(f"⚠ 有记录没填员工：业绩 {m['业绩']:,.2f}、营业额 {m['营业额']:,.2f}、"
+                          f"客次 {m['总客次']}，在员工表单列为「{UNASSIGNED}」。",
+                          f"Registros sem colaborador(a): vendas R$ {m['业绩']:,.2f}, receita R$ {m['营业额']:,.2f}, "
+                          f"{m['总客次']} atendimentos — aparecem como «{PT[UNASSIGNED]}»."))
     refunds = df[df["客次符号"] < 0]
     if len(refunds):
-        out.append(f"退款单 {refunds['单据编号'].nunique() if '单据编号' in df.columns else len(refunds)} 张"
-                   f"（{len(refunds)} 行，支付金额合计 {refunds['支付金额'].sum():,.2f}），已按负数抵扣。")
+        docs = refunds["单据编号"].nunique() if "单据编号" in df.columns else len(refunds)
+        total = refunds["支付金额"].sum()
+        out.append(bi(f"退款单 {docs} 张（{len(refunds)} 行，支付金额合计 {total:,.2f}），已按负数抵扣。",
+                      f"{docs} estorno(s) ({len(refunds)} linhas, R$ {total:,.2f}) descontados."))
     if "实业绩" in df.columns and pd.to_numeric(df["实业绩"], errors="coerce").fillna(0).eq(0).all():
-        out.append("明细里「实业绩」列全为 0，员工「业绩」按权益金口径计算。")
+        out.append(bi("明细里「实业绩」列全为 0，员工「业绩」按权益金口径计算。",
+                      "A coluna 实业绩 está zerada; as vendas da equipe usam o critério «Vendas Pacotes/Vouchers»."))
     return out
 
 
@@ -362,7 +467,7 @@ HEAD_FILL = PatternFill("solid", fgColor="D9E1F2")
 HELPER_FILL = PatternFill("solid", fgColor="F2F2F2")
 SUBTOTAL_FILL = PatternFill("solid", fgColor="EEF3FA")
 TILE_FILL = PatternFill("solid", fgColor="F5F7FA")
-CENTER = Alignment(horizontal="center", vertical="center")
+CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 MUTED = "7F7F7F"
 
 # 图表配色（dataviz 参考调色板）：同一个对象在所有图里用同一个颜色。
@@ -485,7 +590,7 @@ def write_staff_header(ws, row, col0):
 def write_month_targets(ws, row, col0, rep):
     """月度实际行下方的 4 行目标对比，只填有目标的列，返回下一个空行。"""
     _, _, rows = target_summary(rep)
-    labels = ["月目标", "月达成率", f"同期目标（截至{rep.end:%m/%d}）", "同期达成率"]
+    labels = ["月目标", "月达成率", f"同期目标 / Meta até {dm(rep.end)}", "同期达成率"]
     for i, text in enumerate(labels):
         label_cell(ws, row + i, 2, text, bold=i == 3)
         for j in range(len(MONTH_METRICS)):
@@ -528,10 +633,12 @@ def write_staff_values(ws, row, col0, m, bold=False, fill=None):
 
 def write_main_sheet(ws, rep, source_name):
     col0 = 3  # C 列开始放指标，与手工模板一致
-    ws["A1"] = f"门店经营数据  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["A1"] = f"门店经营数据 Dados da Loja  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
     ws["A1"].font = font(size=14, bold=True)
-    note(ws, 2, 1, f"数据来源：{source_name}　生成时间：{datetime.now():%Y-%m-%d %H:%M}　"
-                   f"灰色「计算用」列为公式的底数；口径见「指标说明」")
+    note(ws, 2, 1, bi(f"数据来源：{source_name}　生成时间：{datetime.now():%Y-%m-%d %H:%M}　"
+                      f"灰色「计算用」列为公式的底数；口径见「{SHEETS['指标说明']}」",
+                      f"Fonte: {source_name} · gerado em {datetime.now():%d/%m/%Y %H:%M} · colunas cinza «Base» "
+                      f"alimentam as fórmulas; definições na aba «{SHEETS['指标说明']}»"))
 
     # 月度总数据（有目标时下面加 月目标 / 月达成率 / 同期目标 / 同期达成率）
     r = 4
@@ -572,7 +679,9 @@ def write_main_sheet(ws, rep, source_name):
     write_staff_values(ws, total_row, 4, (r + 1, total_row - 1), bold=True)
     for letter in "DE":
         data_bar(ws, f"{letter}{r + 1}:{letter}{total_row - 1}")
-    note(ws, total_row + 1, 3, "注：同一客户找过多位员工成交时会各算一次，故人数合计（及合计行的新客成交率）可能略高于月度总数据。")
+    note(ws, total_row + 1, 3, bi("注：同一客户找过多位员工成交时会各算一次，故人数合计（及合计行的新客成交率）可能略高于月度总数据。",
+                                  "Obs.: cliente que fechou com mais de uma colaboradora conta para cada uma, então o total "
+                                  "de clientes (e a conversão da linha Total) pode ficar um pouco acima do resumo do mês."))
 
     # 员工达成 · 月总周分：每位员工一块，先月度合计，再逐周
     r = total_row + 3
@@ -599,8 +708,8 @@ def write_main_sheet(ws, rep, source_name):
 
     helper_start = col0 + len(MONTH_METRICS) + 1
     for i in range(col0, helper_start + len(HELPER_METRICS)):
-        ws.column_dimensions[get_column_letter(i)].width = 20 if i >= helper_start else 14
-    for letter, w in {"A": 12, "B": 26, "C": 26}.items():
+        ws.column_dimensions[get_column_letter(i)].width = 20 if i >= helper_start else 15
+    for letter, w in {"A": 30, "B": 32, "C": 28}.items():
         ws.column_dimensions[letter].width = w
     ws.freeze_panes = "C1"
     landscape(ws)
@@ -682,16 +791,18 @@ def write_week_matrix(ws, r, title, matrix, metric):
 
 
 def short_week(label):
-    """「W3 10/15-10/21（截至10/18）」→「W3（截至10/18）」，用于表头和图表坐标轴。"""
+    """「W3 15/out-21/out（截至/até 18/out）」→「W3（截至/até 18/out）」，用于表头和图表坐标轴。"""
     return label.split()[0] + (label[label.index("（"):] if "（" in label else "")
 
 
 def write_category_sheet(wb, rep):
-    ws = wb.create_sheet("项目分类")
-    ws["A1"] = f"项目分类统计  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws = wb.create_sheet(SHEETS["项目分类"])
+    ws["A1"] = f"项目分类统计 Categorias de Serviço  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
     ws["A1"].font = font(size=14, bold=True)
-    note(ws, 2, 1, "只统计类型=项目（客人实际做的项目）；新客/会员/网红 的划分与经营报表一致；平均单价=营业额÷总客次。"
-                   "各项目明细见「项目明细」。")
+    note(ws, 2, 1, bi("只统计类型=项目（客人实际做的项目）；新客/会员/网红 的划分与经营报表一致；平均单价=营业额÷总客次。"
+                      f"各项目明细见「{SHEETS['项目明细']}」。",
+                      "Só serviços realizados; novos/pacote/influencers como no relatório; preço médio = receita ÷ "
+                      f"atendimentos. Detalhe por serviço na aba «{SHEETS['项目明细']}»."))
     r = write_mix_block(ws, 4, "按分类（月度）", rep.categories, ["分类"], with_share=True)
     r = write_week_matrix(ws, r, "按分类 · 周度客次", rep.category_weeks["总客次"], "总客次")
     write_week_matrix(ws, r, "按分类 · 周度营业额", rep.category_weeks["营业额"], "营业额")
@@ -700,10 +811,12 @@ def write_category_sheet(wb, rep):
         ws.column_dimensions[get_column_letter(j)].width = 15
     landscape(ws)
 
-    ws = wb.create_sheet("项目明细")
-    ws["A1"] = f"项目明细  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws = wb.create_sheet(SHEETS["项目明细"])
+    ws["A1"] = f"项目明细 Serviços  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
     ws["A1"].font = font(size=14, bold=True)
-    note(ws, 2, 1, "每个项目做了多少次、谁在做（新客/会员/网红）、带来多少营业额；按分类分组，组内按客次排序。")
+    note(ws, 2, 1, bi("每个项目做了多少次、谁在做（新客/会员/网红）、带来多少营业额；按分类分组，组内按客次排序。",
+                      "Quantas vezes cada serviço foi feito, para quem (novos/pacote/influencers) e quanto rendeu; "
+                      "agrupado por categoria, ordenado por atendimentos."))
     write_mix_block(ws, 4, "按项目（月度）", rep.items, ["分类", "项目名称"], with_share=False)
     ws.column_dimensions["A"].width = 22
     ws.column_dimensions["B"].width = 46
@@ -716,13 +829,15 @@ def write_category_sheet(wb, rep):
 # ---------------------------------------------------------------- 目标达成 sheet
 
 def write_target_sheet(wb, rep):
-    ws = wb.create_sheet("目标达成")
+    ws = wb.create_sheet(SHEETS["目标达成"])
     tg = rep.targets
     progress, remaining, rows = target_summary(rep)
-    ws["A1"] = f"目标达成  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["A1"] = f"目标达成 Metas  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
     ws["A1"].font = font(size=14, bold=True)
-    note(ws, 2, 1, f"目标来源：{tg.source}。✓ = 达到同期目标（按每日目标累计到 {rep.end:%m/%d}），✗ = 落后。"
-                   f"口径见「指标说明」。")
+    note(ws, 2, 1, bi(f"目标来源：{tg.source}。✓ = 达到同期目标（按每日目标累计到 {dm(rep.end)}），✗ = 落后。"
+                      f"口径见「{SHEETS['指标说明']}」。",
+                      f"Metas: {tg.source}. ✓ = atingiu a meta até {dm(rep.end)} (soma das metas diárias), "
+                      f"✗ = abaixo. Definições na aba «{SHEETS['指标说明']}»."))
     for col, (label, value, fmt_) in enumerate([("目标进度", progress, "0.0%"), ("剩余营业日", len(remaining), "0")]):
         label_cell(ws, 3, 1 + col * 2, label, bold=True, fill=HEAD_FILL)
         c = ws.cell(3, 2 + col * 2, value)
@@ -755,7 +870,8 @@ def write_target_sheet(wb, rep):
     # 周度
     r = last + 3
     ws.cell(r, 1, "周度目标达成").font = font(bold=True, size=11)
-    note(ws, r, 3, "进行中的周用整周目标比较，达成率会偏低；还没到的周只列目标。")
+    note(ws, r, 3, bi("进行中的周用整周目标比较，达成率会偏低；还没到的周只列目标。",
+                      "A semana em andamento é comparada com a meta da semana inteira; semanas futuras só mostram a meta."))
     goals = list(tg.goals)
     style_header(ws.cell(r + 1, 1, "周"))
     for g, k in enumerate(goals):
@@ -782,7 +898,8 @@ def write_target_sheet(wb, rep):
     r = last + 3
     additive = [k for k in goals if k not in RATE_METRICS]
     ws.cell(r, 1, "每日目标 vs 实际").font = font(bold=True, size=11)
-    note(ws, r, 3, "累计达成率 = 月初到当天的累计实际 ÷ 累计目标。")
+    note(ws, r, 3, bi("累计达成率 = 月初到当天的累计实际 ÷ 累计目标。",
+                      "% acumulado = realizado acumulado desde o dia 1 ÷ meta acumulada."))
     style_header(ws.cell(r + 1, 1, "日期"))
     style_header(ws.cell(r + 1, 2, "星期"))
     sub = ["目标", "实际", "累计目标", "累计实际", "累计达成率"]
@@ -795,8 +912,9 @@ def write_target_sheet(wb, rep):
     for i, d in enumerate(month_days):
         row = first_row + i
         c = ws.cell(row, 1, d)
-        c.number_format, c.font, c.border = "mm/dd", font(), BORDER
-        label_cell(ws, row, 2, f"周{WEEKDAYS[d.weekday()]}" + ("（休）" if tg.weights[d] == 0 else ""))
+        c.number_format, c.font, c.border = "dd/mm", font(), BORDER
+        closed = "（休 Fechado）" if tg.weights[d] == 0 else ""
+        label_cell(ws, row, 2, f"周{WEEKDAYS[d.weekday()]} {PT_WEEKDAYS[d.weekday()]}{closed}")
         m = actual_by_day.get(d) if d <= rep.end else None
         for g, k in enumerate(additive):
             t, a, ct, ca, cr = (get_column_letter(3 + g * 5 + j) for j in range(5))
@@ -815,9 +933,10 @@ def write_target_sheet(wb, rep):
         letter = get_column_letter(7 + g * 5)
         status_format(ws, f"{letter}{first_row}:{letter}{last}")
 
-    ws.column_dimensions["A"].width = 26
     for j in range(2, 3 + 5 * max(len(additive), 1) + 1):
         ws.column_dimensions[get_column_letter(j)].width = 14
+    ws.column_dimensions["A"].width = 36
+    ws.column_dimensions["B"].width = 22
     landscape(ws)
 
 
@@ -837,8 +956,8 @@ def write_block(ds, r, headers, rows, fmts):
 
 def write_chart_data(wb, rep):
     """图表引用的数据（纯数值），返回各块的位置。"""
-    ds = wb.create_sheet("图表数据")
-    note(ds, 1, 1, "看板图表的数据来源，由脚本自动生成。")
+    ds = wb.create_sheet(SHEETS["图表数据"])
+    note(ds, 1, 1, bi("看板图表的数据来源，由脚本自动生成。", "Dados dos gráficos do painel, gerados automaticamente."))
     pos = {}
 
     weeks = [(label, m) for label, m in rep.weeks if m is not None]
@@ -866,7 +985,7 @@ def write_chart_data(wb, rep):
         actual_by_day = dict(rep.daily)
         cum_rows, cum = [], {k: [0.0, 0.0] for k in money}
         for d in sorted(tg.weights):
-            row = [f"{d:%m/%d}"]
+            row = [dm(d)]
             for k in money:
                 cum[k][0] += tg.goals[k] * tg.weights[d]
                 if d <= rep.end:
@@ -955,20 +1074,21 @@ def write_tiles(ws, rep):
     voucher_etc = m["权益金"] - m["套餐成交金额"]
     rate = m["新客成交率"]
     tiles = [
-        ("权益金", '"R$ "#,##0', m["权益金"], f"套餐 R$ {m['套餐成交金额']:,.0f} · 券及其他 R$ {voucher_etc:,.0f}"),
-        ("营业额", '"R$ "#,##0', m["营业额"], "项目核销价值"),
-        ("总客次", "#,##0", m["总客次"], "做项目的人次"),
+        ("权益金", '"R$ "#,##0', m["权益金"],
+         f"套餐 Pacotes R$ {m['套餐成交金额']:,.0f} · 券等 Vouchers R$ {voucher_etc:,.0f}"),
+        ("营业额", '"R$ "#,##0', m["营业额"], "项目核销价值 · Valor dos serviços realizados"),
+        ("总客次", "#,##0", m["总客次"], "做项目的人次 · Serviços realizados"),
         ("新客客次", "#,##0", m["新客客次"],
-         f"占总客次 {m['新客客次'] / m['总客次']:.0%}" if m["总客次"] else ""),
-        ("会员客次", "#,##0", m["会员客次"], "套餐核销"),
-        ("网红/邀约", "#,##0", m["网红/邀约"], "免单类"),
-        ("成交人数", "#,##0", m["成交人数"], "买套餐的客户（去重）"),
+         f"占总客次 / do total {m['新客客次'] / m['总客次']:.0%}" if m["总客次"] else ""),
+        ("会员客次", "#,##0", m["会员客次"], "套餐核销 · Pagos com pacote"),
+        ("网红/邀约", "#,##0", m["网红/邀约"], "免单类 · Cortesias"),
+        ("成交人数", "#,##0", m["成交人数"], "买套餐的客户 · Clientes que compraram pacote"),
         ("新客成交率", "0.00%", rate if rate is not None else "-",
-         f"成交人数 {m['成交人数']} ÷ 新客客次 {m['新客客次']}"),
-        ("成交客单", '"R$ "#,##0', m["成交客单"], "套餐金额 ÷ 成交人数"),
-        ("二次券成交数", "#,##0", m["二次券成交数"], f"现场买券的客户 {m['二次券成交人数']} 人"),
-        ("体验客单价", '"R$ "#,##0.00', m["体验客单价"], "营业额 ÷ 总客次"),
-        ("叠加率", "0.00", m["叠加率"], "数量合计 ÷ 总客次"),
+         f"{m['成交人数']} ÷ {m['新客客次']}（成交 ÷ 新客 · fechamentos ÷ novos）"),
+        ("成交客单", '"R$ "#,##0', m["成交客单"], "套餐金额 ÷ 成交人数 · Pacotes ÷ fechamentos"),
+        ("二次券成交数", "#,##0", m["二次券成交数"], f"{m['二次券成交人数']} 位客户 · clientes"),
+        ("体验客单价", '"R$ "#,##0.00', m["体验客单价"], "营业额 ÷ 总客次 · Receita ÷ atendimentos"),
+        ("叠加率", "0.00", m["叠加率"], "数量合计 ÷ 总客次 · Itens ÷ atendimentos"),
     ]
     height = 4 if goals else 3
     for i, (label, fmt_, value, sub) in enumerate(tiles):
@@ -979,17 +1099,20 @@ def write_tiles(ws, rep):
             for cc in range(col, col + 3):
                 ws.cell(rr, cc).fill = TILE_FILL
             ws.cell(rr, col).alignment = Alignment(horizontal="left", vertical="center", indent=1)
-        ws.cell(row, col, label).font = font(size=10, color=MUTED)
+        title = ws.cell(row, col, f"{label}\n{PT[label]}")  # 卡片标题两行，不走 translate_workbook
+        title.font = font(size=9, color=MUTED)
+        title.alignment = Alignment(horizontal="left", vertical="center", indent=1, wrap_text=True)
+        ws.row_dimensions[row].height = 26
         v = ws.cell(row + 1, col, round(value, 6) if isinstance(value, (int, float)) else value)
         v.font, v.number_format = font(size=18, bold=True), fmt_
         ws.row_dimensions[row + 1].height = 28
         t = goals.get(label)
         if t:
             ok = t["同期达成率"] >= 1
-            sub = f"目标 {goal_text(label, t['月目标'])} · 同期 {'✓' if ok else '✗'} {t['同期达成率']:.0%}"
-            ws.cell(row + 2, col, sub).font = font(size=9, bold=True, color=GOOD if ok else BAD)
+            sub = f"目标 Meta {goal_text(label, t['月目标'])} · {'✓' if ok else '✗'} {t['同期达成率']:.0%}"
+            ws.cell(row + 2, col, sub).font = font(size=8, bold=True, color=GOOD if ok else BAD)
             bar = ws.cell(row + 3, col, round(t["月达成率"], 4))
-            bar.number_format, bar.font = '"月达成 "0%', font(size=8, color=MUTED)
+            bar.number_format, bar.font = '"月达成 Mês "0%', font(size=8, color=MUTED)
             progress_bar(ws, bar.coordinate)
         else:
             ws.cell(row + 2, col, sub).font = font(size=8, color=MUTED)
@@ -997,19 +1120,23 @@ def write_tiles(ws, rep):
 
 
 def write_dashboard(wb, rep):
-    ws = wb.create_sheet("看板", 0)
+    ws = wb.create_sheet(SHEETS["看板"], 0)
     ws.sheet_view.showGridLines = False
     for j in range(1, 18):
         ws.column_dimensions[get_column_letter(j)].width = 11
     ws.column_dimensions["A"].width = 2
-    ws["B1"] = f"门店经营看板  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
+    ws["B1"] = f"门店经营看板 Painel da Loja  {rep.start:%Y-%m-%d} ~ {rep.end:%Y-%m-%d}"
     ws["B1"].font = font(size=16, bold=True)
-    hint = "数值明细见「经营报表」「项目分类」；口径见「指标说明」。"
+    hint_zh = f"数值明细见「{SHEETS['经营报表']}」「{SHEETS['项目分类']}」；口径见「{SHEETS['指标说明']}」。"
+    hint_pt = f"Detalhes nas abas «{SHEETS['经营报表']}» e «{SHEETS['项目分类']}»; definições em «{SHEETS['指标说明']}»."
     if rep.targets:
         progress = target_summary(rep)[0]
-        hint = (f"目标进度 {progress:.1%}（按每日目标累计到 {rep.end:%m/%d}）；✓/✗ = 是否达到同期目标，"
-                f"进度条 = 月目标完成比例。详见「目标达成」。") + hint
-    note(ws, 2, 2, hint)
+        hint_zh = (f"目标进度 {progress:.1%}（按每日目标累计到 {dm(rep.end)}）；✓/✗ = 是否达到同期目标，"
+                   f"进度条 = 月目标完成比例，详见「{SHEETS['目标达成']}」。") + hint_zh
+        hint_pt = (f"Progresso esperado {progress:.1%} (metas diárias até {dm(rep.end)}); ✓/✗ = meta até hoje "
+                   f"atingida ou não; barra = % da meta do mês (aba «{SHEETS['目标达成']}»). ") + hint_pt
+    note(ws, 2, 2, hint_zh)
+    note(ws, 3, 2, hint_pt)
     top = write_tiles(ws, rep)
 
     ds, pos = write_chart_data(wb, rep)
@@ -1024,19 +1151,27 @@ def write_dashboard(wb, rep):
         t0, t1 = pos["week_targets"]
         a0, a1 = pos["achieve"]
         for i, k in enumerate(pos["money"]):
-            charts.append(make_line_chart(ds, d0, d1, [2 + i * 2, 3 + i * 2], f"{k} 累计 vs 目标（R$）"))
-        charts.append(make_chart(ds, a0, a1, [2, 3], "目标达成率 vs 应达进度", horizontal=True, labels=True,
+            charts.append(make_line_chart(ds, d0, d1, [2 + i * 2, 3 + i * 2],
+                                          f"{k} 累计 vs 目标（R$）\n{PT[k]}: acumulado vs meta"))
+        charts.append(make_chart(ds, a0, a1, [2, 3], "目标达成率 vs 应达进度\n% atingido vs progresso esperado",
+                                 horizontal=True, labels=True,
                                  height=max(7.5, 1.1 * (a1 - a0) + 2.5), num_fmt="0%"))
         for i, k in enumerate(pos["money"]):
-            charts.append(make_chart(ds, t0, t1, [2 + i * 2, 3 + i * 2], f"周度 {k} 实际 vs 目标（R$）"))
+            charts.append(make_chart(ds, t0, t1, [2 + i * 2, 3 + i * 2],
+                                     f"周度 {k} 实际 vs 目标（R$）\n{PT[k]}: semanal vs meta"))
     else:
-        charts.append(make_chart(ds, w0, w1, [2, 3], "周度 权益金 vs 营业额（R$）", labels=True))
+        charts.append(make_chart(ds, w0, w1, [2, 3], "周度 权益金 vs 营业额（R$）\nVendas vs receita por semana",
+                                 labels=True))
     charts += [
-        make_chart(ds, w0, w1, [4, 5, 6], "周度客次构成（新客/会员/网红）", stacked=True),
-        make_chart(ds, s0, s1, [2, 3], "员工 业绩 vs 营业额（R$）", horizontal=True, height=staff_height),
-        make_chart(ds, c0, c1, [2, 3, 4], "项目分类客次（按客户类型）", horizontal=True, stacked=True,
+        make_chart(ds, w0, w1, [4, 5, 6], "周度客次构成（新客/会员/网红）\nAtendimentos por semana e tipo de cliente",
+                   stacked=True),
+        make_chart(ds, s0, s1, [2, 3], "员工 业绩 vs 营业额（R$）\nEquipe: vendas vs receita", horizontal=True,
+                   height=staff_height),
+        make_chart(ds, c0, c1, [2, 3, 4], "项目分类客次（按客户类型）\nAtendimentos por categoria e tipo de cliente",
+                   horizontal=True, stacked=True,
                    height=cat_height),
-        make_chart(ds, c0, c1, [5], "项目分类营业额（R$）", horizontal=True, labels=True, height=cat_height),
+        make_chart(ds, c0, c1, [5], "项目分类营业额（R$）\nReceita por categoria", horizontal=True, labels=True,
+                   height=cat_height),
     ]
     row = top
     for i in range(0, len(charts), 2):  # 两列排布，每行高度取两张图中较高的
@@ -1048,6 +1183,46 @@ def write_dashboard(wb, rep):
 
 
 # ---------------------------------------------------------------- 其他 sheet 与入口
+
+def wrapped_lines(text, width):
+    """估算一段文字在给定列宽里自动换行后的行数（中文按 2 个字符宽，按词折行）。"""
+    cap = max(int(width) - 2, 4)
+    lines, used = 1, 0
+    for word in text.split(" "):
+        w = sum(2 if ord(ch) > 0x2E80 else 1 for ch in word)
+        if used and used + 1 + w > cap:
+            lines, used = lines + 1, 0
+        used += w + (1 if used else 0)
+        while used > cap:
+            lines, used = lines + 1, used - cap
+    return lines
+
+
+def translate_workbook(wb):
+    """保存前把表头和固定标签换成中葡双语：表头（蓝/灰底）上下两行，其他标签「中文 / Português」。
+    图表数据 sheet 一律单行（它的表头就是图例和坐标轴文字）。"""
+    header_fills = {HEAD_FILL.fgColor.rgb[-6:], HELPER_FILL.fgColor.rgb[-6:]}
+    for ws in wb.worksheets:
+        inline_only = ws.title == SHEETS["图表数据"]
+        heights = {}
+        for row in ws.iter_rows():
+            for c in row:
+                if not isinstance(c.value, str) or c.value.startswith("="):
+                    continue
+                p = pt_of(c.value)
+                if p is None:
+                    continue
+                if inline_only or (c.fill.fgColor.rgb or "")[-6:] not in header_fills:
+                    c.value = f"{c.value} / {p}"
+                    continue
+                width = ws.column_dimensions[c.column_letter].width or 8.43
+                lines = wrapped_lines(c.value, width) + wrapped_lines(p, width)
+                c.value = f"{c.value}\n{p}"
+                c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                heights[c.row] = max(heights.get(c.row, 15), 13 * lines + 4)
+        for r, h in heights.items():
+            ws.row_dimensions[r].height = h
+
 
 def write_detail(wb, title, rows, amount_col):
     ws = wb.create_sheet(title)
@@ -1063,7 +1238,7 @@ def write_detail(wb, title, rows, amount_col):
         for j, v in enumerate(values, 1):
             c = ws.cell(i, j, None if pd.isna(v) else v)
             c.font, c.border = font(), BORDER
-        ws.cell(i, 1).number_format = "yyyy-mm-dd"
+        ws.cell(i, 1).number_format = "dd/mm/yyyy"
         ws.cell(i, 8).number_format = "#,##0.00"
     n = len(rows) + 2
     ws.cell(n, 5, "合计").font = font(bold=True)
@@ -1078,42 +1253,48 @@ def write_detail(wb, title, rows, amount_col):
 def write_report(path, df, rep, notes, source_name, week_mode):
     wb = Workbook()
     write_main_sheet(wb.active, rep, source_name)
-    wb.active.title = "经营报表"
+    wb.active.title = SHEETS["经营报表"]
     if rep.targets:
         write_target_sheet(wb, rep)
     write_category_sheet(wb, rep)
 
-    ds = wb.create_sheet("指标说明")
-    for j, h in enumerate(["指标", "计算口径", "本期数值"], 1):
+    ds = wb.create_sheet(SHEETS["指标说明"])
+    for j, h in enumerate(["指标", "计算口径", "Definição (português)", "本期数值"], 1):
         style_header(ds.cell(1, j, h))
     for i, (k, text) in enumerate(DEFINITIONS, 2):
         ds.cell(i, 1, k).font = font(bold=True)
         ds.cell(i, 2, text).font = font()
-        ds.cell(i, 2).alignment = Alignment(wrap_text=True, vertical="top")
-        if rep.month.get(k) is not None:
-            style_value(ds.cell(i, 3, round(rep.month[k], 6)), k)
+        ds.cell(i, 3, DEFINITIONS_PT.get(k)).font = font()
         for j in (1, 2, 3):
+            ds.cell(i, j).alignment = Alignment(wrap_text=True, vertical="top")
+        if rep.month.get(k) is not None:
+            style_value(ds.cell(i, 4, round(rep.month[k], 6)), k)
+        for j in (1, 2, 3, 4):
             ds.cell(i, j).border = BORDER
-    note(ds, len(DEFINITIONS) + 2, 1,
-         f"周度划分方式：{'自然周(周一~周日)' if week_mode == 'natural' else '每月按 7 天一段'}")
-    ds.column_dimensions["A"].width = 20
-    ds.column_dimensions["B"].width = 90
-    ds.column_dimensions["C"].width = 14
+    natural = week_mode == "natural"
+    note(ds, len(DEFINITIONS) + 2, 1, bi(f"周度划分方式：{'自然周(周一~周日)' if natural else '每月按 7 天一段'}",
+                                         f"Semanas: {'segunda a domingo' if natural else 'blocos de 7 dias a partir do dia 1'}"))
+    ds.column_dimensions["A"].width = 24
+    ds.column_dimensions["B"].width = 60
+    ds.column_dimensions["C"].width = 60
+    ds.column_dimensions["D"].width = 14
+    landscape(ds)
 
     # 核对明细（相当于原来的透视表）
     right = df[df["类型"] == "权益"]
     package = right[(right["分类"] == "套餐") & (right["现金类支付"] != 0)]
     voucher_sale = right[(right["分类"] == "代金券") & (right["支付归类"] == "现金类")]
-    write_detail(wb, "套餐成交明细", package, "现金类支付")
-    write_detail(wb, "二次券成交明细", voucher_sale, "支付金额")
+    write_detail(wb, SHEETS["套餐成交明细"], package, "现金类支付")
+    write_detail(wb, SHEETS["二次券成交明细"], voucher_sale, "支付金额")
 
-    cs = wb.create_sheet("数据检查")
+    cs = wb.create_sheet(SHEETS["数据检查"])
     style_header(cs.cell(1, 1, "数据检查 / 提示"))
     for i, line in enumerate(notes, 2):
         cs.cell(i, 1, line).font = font(color="C00000" if line.startswith("⚠") else "000000")
     cs.column_dimensions["A"].width = 120
 
     write_dashboard(wb, rep)  # 放在第一个 sheet；图表数据 sheet 排在最后
+    translate_workbook(wb)
     wb.active = 0
     wb.calculation.fullCalcOnLoad = True
     wb.save(path)
