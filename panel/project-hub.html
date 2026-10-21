@@ -181,6 +181,12 @@ button { cursor: pointer; }
 .drow + .drow { border-top: 1px solid var(--line); }
 .drow input { margin: 3px 0 0; accent-color: var(--accent); width: 15px; height: 15px; }
 .drow label { font-size: 13px; color: var(--faint); text-decoration: line-through; cursor: pointer; overflow-wrap: anywhere; }
+.dtxt, .ptxt { display: grid; gap: 3px; justify-items: start; min-width: 0; }
+.obs-line { font-size: 12px; color: var(--muted); background: var(--surface-2); border-radius: 4px; padding: 3px 8px; overflow-wrap: anywhere; white-space: pre-wrap; text-decoration: none; }
+.obs-line b { color: var(--faint); font-weight: 500; letter-spacing: .04em; margin-right: 6px; }
+.pacts { display: inline-flex; gap: 4px; }
+dialog.obs-dlg { width: min(520px, calc(100vw - 24px)); }
+.obs-task { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 .slist .none { color: var(--faint); font-size: 13px; padding: 2px 0 6px; }
 
 /* ---------- plan view ---------- */
@@ -484,7 +490,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   .ptask, .ptask.loose { grid-template-columns: auto minmax(0, 1fr) auto; }
   .ptask input[type="date"], .ptask select { grid-column: 2 / 3; grid-row: 2; }
   .ptask.loose select { grid-row: 3; }
-  .ptask .mini { grid-column: 3; grid-row: 1; }
+  .ptask .pacts { grid-column: 3; grid-row: 1; }
   .obj-h { grid-template-columns: auto minmax(0, 1fr); }
   .obj-meta { grid-column: 1 / -1; justify-content: flex-start; }
   .init-h { grid-template-columns: auto minmax(0, 1fr) auto; }
@@ -628,6 +634,27 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       <div class="right">
         <button class="btn" type="button" data-close>取消</button>
         <button class="btn primary" type="submit" id="ed-save">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="editor obs-dlg" id="obs-dlg" aria-labelledby="obs-title">
+  <form class="ed" id="obs-form" method="dialog" autocomplete="off">
+    <div class="ed-h">
+      <h2 id="obs-title">OBS · 结论</h2>
+      <button class="btn" type="button" data-obsclose>关闭</button>
+    </div>
+    <div class="ed-b">
+      <p class="obs-task" id="obs-task"></p>
+      <label class="lf"><span class="fl">这件事的结论、结果，或之后要记住的事</span>
+        <textarea class="field" id="obs-text" rows="5" maxlength="2000" placeholder="例如：商场要的是 9 月营业额和客流，已发给 Ibirapuera 运营部"></textarea>
+      </label>
+    </div>
+    <div class="ed-f">
+      <div class="right">
+        <button class="btn" type="button" data-obsclose>取消</button>
+        <button class="btn primary" type="submit">保存</button>
       </div>
     </div>
   </form>
@@ -780,6 +807,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   const find = id => state.projects.find(p => p.id === id);
   const roleOf = p => byK(ROLES, p.roleType) || ROLES[0];
   const isTodayTask = t => { const n = daysUntil(t.due); return (n != null && n <= 0) || t.today === todayISO(); };
+  const obsLine = t => t.obs ? `<div class="obs-line"><b>OBS</b>${esc(t.obs)}</div>` : '';
   const initOf = (p, iid) => iid ? (p.initiatives || []).find(i => i.id === iid) : null;
   function initCount(p, i) {
     const ts = (p.tasks || []).filter(t => t.initiativeId === i.id);
@@ -857,7 +885,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
             const id = `td-${p.id}-${t.id}`;
             return `<li class="trow">
               <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${state.canWrite ? '' : 'disabled'}>
-              <div class="txt"><label for="${esc(id)}">${esc(t.text)}</label>${ini ? `<span class="itag">${esc(ini.title)}</span>` : ''}</div>
+              <div class="txt"><label for="${esc(id)}">${esc(t.text)}</label>${ini ? `<span class="itag">${esc(ini.title)}</span>` : ''}${obsLine(t)}</div>
               ${pinned ? '<span class="pin">今天做</span>' : di ? `<span class="due ${di.c}">${di.t}</span>` : '<span></span>'}
               ${state.canWrite ? `<button class="mini" type="button" data-act="tomorrow" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}">推到明天</button>` : '<span></span>'}
             </li>`;
@@ -880,8 +908,8 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     $('#td-done').innerHTML = done.length ? done.map(({ p, t }) => {
       const id = `tx-${p.id}-${t.id}`;
       return `<li class="drow"><input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" checked ${state.canWrite ? '' : 'disabled'} aria-label="取消完成">
-        <label for="${esc(id)}">${esc(t.text)} · ${esc(p.name || '')}</label></li>`;
-    }).join('') : '<li class="none">勾掉的事会出现在这里，取消勾选可以撤回。</li>';
+        <div class="dtxt"><label for="${esc(id)}">${esc(t.text)} · ${esc(p.name || '')}</label>${obsLine(t)}${state.canWrite ? `<button class="linkbtn" type="button" data-obs="${esc(p.id)}:${esc(t.id)}">${t.obs ? '改 OBS' : '写 OBS'}</button>` : ''}</div></li>`;
+    }).join('') : '<li class="none">勾掉的事会出现在这里，可以写 OBS 记下结论；取消勾选可以撤回。</li>';
 
     fillProjSelect($('#tq-proj'), live, ['#tq-text', '#tq-proj', '#tq-add']);
   }
@@ -961,10 +989,10 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
     const dis = W() ? '' : 'disabled';
     return `<li class="ptask ${t.done ? 'done' : ''} ${loose ? 'loose' : ''}">
       <input type="checkbox" id="${esc(id)}" data-pid="${esc(p.id)}" data-tid="${esc(t.id)}" ${t.done ? 'checked' : ''} ${dis}>
-      <label for="${esc(id)}">${esc(t.text)}${t.due && !t.done ? (() => { const di = dueInfo(t.due); return di && di.c ? ` <span class="due ${di.c}">${di.t}</span>` : ''; })() : ''}</label>
+      <div class="ptxt"><label for="${esc(id)}">${esc(t.text)}${t.due && !t.done ? (() => { const di = dueInfo(t.due); return di && di.c ? ` <span class="due ${di.c}">${di.t}</span>` : ''; })() : ''}</label>${obsLine(t)}</div>
       <input type="date" value="${esc(t.due || '')}" data-tdue="${esc(t.id)}" aria-label="哪天做" ${dis}>
       ${loose ? `<select data-move="${esc(t.id)}" aria-label="归到小项目" ${dis}>${initOptions(p, null, '归到小项目…')}</select>` : ''}
-      ${W() ? `<button class="mini" type="button" data-open="edit:task:${esc(t.id)}">改</button>` : '<span></span>'}
+      ${W() ? `<span class="pacts"><button class="mini" type="button" data-obs="${esc(p.id)}:${esc(t.id)}" title="写下这件事的结论">OBS</button><button class="mini" type="button" data-open="edit:task:${esc(t.id)}">改</button></span>` : '<span></span>'}
     </li>`;
   }
   function initBlock(p, i) {
@@ -1597,11 +1625,12 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   let toastTimer = null;
   function toast(msg, action) {
     const el = $('#toast');
-    el.innerHTML = `<span>${esc(msg)}</span>${action ? `<button type="button">${esc(action.label)}</button>` : ''}`;
-    if (action) el.querySelector('button').onclick = () => { el.hidden = true; action.run(); };
+    const acts = action ? [].concat(action) : [];
+    el.innerHTML = `<span>${esc(msg)}</span>${acts.map((a, i) => `<button type="button" data-ti="${i}">${esc(a.label)}</button>`).join('')}`;
+    el.querySelectorAll('button').forEach(b => { b.onclick = () => { el.hidden = true; acts[+b.dataset.ti].run(); }; });
     el.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.hidden = true; }, action ? 6000 : 3500);
+    toastTimer = setTimeout(() => { el.hidden = true; }, acts.length ? 7000 : 3500);
   }
 
   /* ---------- plan view interactions ---------- */
@@ -1841,10 +1870,35 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
   });
   dlg.addEventListener('close', () => { draft = null; });
 
+  /* ---------- OBS: a conclusion note on one to-do ---------- */
+  const obsDlg = $('#obs-dlg');
+  let obsTarget = null;
+  function openObs(pid, tid) {
+    const p = find(pid), t = p && (p.tasks || []).find(x => x.id === tid);
+    if (!t || !state.canWrite) return;
+    obsTarget = { pid, tid };
+    $('#obs-task').textContent = `${p.name || ''} · ${t.text}`;
+    $('#obs-text').value = t.obs || '';
+    if (typeof obsDlg.showModal === 'function') obsDlg.showModal(); else obsDlg.setAttribute('open', '');
+    setTimeout(() => $('#obs-text').focus(), 30);
+  }
+  function closeObs() { if (obsDlg.open) obsDlg.close(); obsTarget = null; }
+  $('#obs-form').addEventListener('submit', e => {
+    e.preventDefault();
+    if (!obsTarget || !DB) return;
+    const { pid, tid } = obsTarget, obs = $('#obs-text').value.trim();
+    patchTask(pid, tid, { obs: obs || null });
+    closeObs();
+    toast(obs ? 'OBS 已保存' : 'OBS 已清空');
+  });
+  obsDlg.addEventListener('click', e => { if (e.target.closest('[data-obsclose]') || e.target === obsDlg) closeObs(); });
+
   /* ---------- page events ---------- */
   document.addEventListener('click', e => {
     const v = e.target.closest('#tabs button');
     if (v) { setView(v.dataset.view); return; }
+    const ob = e.target.closest('[data-obs]');
+    if (ob) { const [pid, tid] = ob.dataset.obs.split(':'); openObs(pid, tid); return; }
     const gp = e.target.closest('[data-goplan]');
     if (gp) { closeEditor(); state.plan.pid = gp.dataset.goplan; local.set('planPid', state.plan.pid); setView('plan'); return; }
     const ed = e.target.closest('[data-edit]');
@@ -1879,7 +1933,7 @@ textarea.field { resize: vertical; min-height: 60px; line-height: 1.5; }
       setTask(pid, tid, done);
       if (done) {
         const t = (find(pid)?.tasks || []).find(x => x.id === tid);
-        toast(`已完成：${t ? t.text : '待办'}`, { label: '撤销', run: () => setTask(pid, tid, false) });
+        toast(`已完成：${t ? t.text : '待办'}`, [{ label: '写 OBS', run: () => openObs(pid, tid) }, { label: '撤销', run: () => setTask(pid, tid, false) }]);
       }
       return;
     }

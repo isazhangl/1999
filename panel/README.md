@@ -10,7 +10,7 @@
 - 基本信息：`name` `tagline` `stage` `stageNote` `roleType` `role` `roleNote` `focus` `health` `milestone{title,date}` `links[]` `notes`
 - 规划：`objectives[{id,title,period,status,krs[{id,title,current,target,unit}]}]`
   `initiatives[{id,title,due,objectiveId}]`（小项目，`objectiveId` 为空 = 没挂目标）
-- 待办：`tasks[{id,text,done,doneAt,due,today,initiativeId,createdAt}]`
+- 待办：`tasks[{id,text,done,doneAt,due,today,initiativeId,obs,createdAt}]`（`obs` = 用户写的结论/备注）
 
 读写用 `ArtifactData`，写之前先读，带 `if_version`；用户会直接在页面里改，不要覆盖。
 
