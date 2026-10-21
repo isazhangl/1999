@@ -20,6 +20,17 @@
 - 往面板里加/改事项：用 ArtifactData 先 `get` 该公司文档拿 version，在原数组上追加（id 用 8 位随机串），
   `update` 时带 `if_version`；只改 objectives/initiatives/tasks，不要覆盖别的字段。改之前先跟用户确认。
 
+## KOMO Q4 OKR 面板（单独一个，和总控台分开）
+
+- 链接：https://claude.ai/artifact/3gjAZkHcw4bZ3wC75EETsW （能力：db、user；中/PT 切换；给店长、市场部一起更新）
+- 2026 Q4 = 11–12 月，KR 按月、按店（`m` = 1店 Morumbi，`i` = 2店 Ibirapuera）看。O1 业绩达标（O 本身就是权益金+营业额，
+  KR：新客数 / 新客成交率 / 老客续卡（先金额后人数）/ 客次，**具体数字由 Isa 拆**）；O2 搭建加盟体系（打好基础，含 COF）；
+  O3 组织架构和流程优化（11 月底前；KR 写法还是草稿）。总控台里的 KOMO 待办保持不动，人事类待办（升职、开除）不放进这个共享面板。
+- 集合（一项一个文档，文字字段 `zh`/`pt`）：`objectives{kind:okr|ops,noteZh,notePt}`、
+  `krs{objectiveId,type:metric|milestone,kind?:result,lines[{key,zh,pt,unit}],values{<line>:{<YYYY-MM>:{m|i:{t,a}}}},status,due,ownerIds}`、
+  `projects{objectiveId,krId,ownerIds,due}`、`tasks{projectId,krId,objectiveId,done,due,ownerIds,doneAt,doneBy}`、`members{name,pt,role,rolePt}`。
+  负责人存 `members` 的 id（组织架构图来了再把「1店店长/2店店长」改成名字）。用 ArtifactData 改之前先跟用户确认，写已有文档要带 if_version。
+
 ## KOMO（巴西圣保罗头皮护理门店）
 
 - **1店 = Morumbi（街边店，先开，11月满一周年）**，**2店 = Ibirapuera（Shopping Ibirapuera 商场店，后开）**。
