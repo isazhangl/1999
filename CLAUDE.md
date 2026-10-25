@@ -36,5 +36,6 @@
 - **1店 = Morumbi（街边店，先开，11月满一周年）**，**2店 = Ibirapuera（Shopping Ibirapuera 商场店，后开）**。
 - 周报：用户说「做周报」→ 按 `.claude/skills/store-report/SKILL.md` 做（脚本 `analytics/store_report/store_report.py`，
   目标在 `analytics/store_report/targets/<门店>/<YYYY-MM>.json`）。
+  2026-10-25 定稿：周一~周日分周（导出从 W1 的周一开始）、客次 = 到店次数、权益金含线上卖券并拆四类、人效、新客成交率只算新客 / 会员复购率。会员 = 客户编号字母+数字，新客 = 纯数字。
 - 新客增长计划：`analytics/plans/make_growth_plan.py` 生成 Excel（当前草稿 v7，含 10/29 Morumbi VIP 沙龙和 11 月活动决定）。
 - 收银明细含客户姓名/电话：输入和输出 Excel 都不入库（`reports/` 已 gitignore）。
