@@ -38,8 +38,8 @@ KNOWN_PAY_METHODS = {
 }
 
 MONTH_METRICS = ["权益金", "营业额", "总客次", "会员客次", "新客客次", "网红/邀约",
-                 "成交人数", "成交客单", "二次券成交数", "体验客单价", "叠加率", "新客成交率"]
-HELPER_METRICS = ["套餐成交金额", "数量合计"]
+                 "成交人数", "成交客单", "二次券成交数", "体验客单价", "叠加率", "新客成交率", "人效"]
+HELPER_METRICS = ["套餐成交金额", "数量合计", "护理师人天"]
 STAFF_METRICS = ["业绩", "营业额", "总客次", "成交人数", "二次券成交人数", "新客成交率"]
 STAFF_HELPERS = ["新客客次"]
 CUSTOMER_TYPES = ["新客客次", "会员客次", "网红/邀约"]
@@ -48,7 +48,7 @@ UNASSIGNED = "未指定员工"
 BREAKDOWN = ["卖套餐", "二次券", "体验", "线上卖券"]
 BREAKDOWN_COLS = {"卖套餐": "套餐额", "二次券": "二次券额", "体验": "体验额", "线上卖券": "线上额"}
 TARGETS_DIR = Path(__file__).resolve().parent / "targets"  # targets/<门店>/<YYYY-MM>.json
-RATE_METRICS = {"新客成交率", "体验客单价", "成交客单", "叠加率"}  # 比率型目标：任何时间段的目标都一样
+RATE_METRICS = {"新客成交率", "体验客单价", "成交客单", "叠加率", "人效"}  # 比率型目标：任何时间段的目标都一样
 METRIC_ALIASES = {"客单价": "体验客单价"}
 WEEKDAYS = "一二三四五六日"
 UNCATEGORIZED = "（未分类）"
@@ -57,6 +57,7 @@ METRIC_FORMATS = {
     "权益金": "#,##0.00", "营业额": "#,##0.00", "成交客单": "#,##0", "体验客单价": "#,##0.00",
     "叠加率": "0.00", "套餐成交金额": "#,##0.00", "业绩": "#,##0.00", "平均单价": "#,##0.00",
     **{k: "#,##0.00" for k in BREAKDOWN},
+    "人效": "0.00", "日均上班护理师": "0.0",
     "客次占比": "0.0%", "营业额占比": "0.0%", "新客成交率": "0.00%", "月达成率": "0.0%", "累计达成率": "0.0%",
 }
 
@@ -73,6 +74,10 @@ PT = {
     "营业额占比": "% Receita", "平均单价": "Preço Médio",
     "卖套餐": "Pacotes", "二次券": "Vouchers de Retorno", "体验": "Experiência", "线上卖券": "Vouchers Online",
     "权益金拆解": "Composição das Vendas", "占比": "% do Total",
+    "人效": "Atend. por Terapeuta/Dia", "护理师人天": "Terapeuta-Dias", "营业天数": "Dias com Atendimento",
+    "日均上班护理师": "Terapeutas por Dia", "上班护理师": "Terapeutas no Dia",
+    "当天做项目的护理师": "Terapeutas que Atenderam", "月度 / 周度人效": "Produtividade por Mês e Semana",
+    "每日人效": "Produtividade por Dia",
     # 表头 / 标签
     "分类": "Categoria", "项目名称": "Serviço", "月度合计": "Total do Mês", "合计": "Total", "员工": "Colaborador(a)",
     "期间": "Período", "周": "Semana", "日期": "Data", "星期": "Dia", "指标": "Indicador", "名称": "Item",
@@ -104,7 +109,7 @@ PT_MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out
 SHEETS = {"看板": "看板 Painel", "经营报表": "经营报表 Relatório", "目标达成": "目标达成 Metas",
           "项目分类": "项目分类 Categorias", "项目明细": "项目明细 Serviços", "指标说明": "指标说明 Definições",
           "套餐成交明细": "套餐成交明细 Pacotes", "二次券成交明细": "二次券成交明细 Vouchers",
-          "数据检查": "数据检查 Verificação", "图表数据": "图表数据 Dados Gráficos"}
+          "数据检查": "数据检查 Verificação", "图表数据": "图表数据 Dados Gráficos", "人效": "人效 Produtividade"}
 
 
 def pt_of(text):
@@ -133,6 +138,8 @@ DEFINITIONS = [
              "加上客人线上买券的钱；用代金券/套餐抵扣的部分不算，退款为负数自动抵扣。"
              "比收银系统里的权益金多出「做项目时直接付钱」的部分（系统只统计类型=权益），差额见「数据检查」。"),
     ("卖套餐", "类型=权益、分类=套餐 的「支付金额」，不含用代金券/套餐抵扣的部分。"),
+    ("人效", "总客次 ÷ 护理师人天（客次/人/天）。护理师人天 = 每天有做项目的员工人数相加，来自售出明细的「员工」，不是排班表："
+            "上班但当天一个客人都没做的人不算，所以实际人效会略低。每日 / 每周 / 每月明细见「人效」页。"),
     ("二次券", "店里卖出、当天没有用掉的券（类型=权益、分类=代金券，现金/卡/PIX 支付）；券的退款按负数记在这里。"),
     ("体验", "做项目时直接付钱（类型=项目、现金/卡/PIX 支付）＋ 店里现买、当天就用掉的券。当天是否用掉按同一客户同一天估算："
             "当天用券做的项目先抵之前买的券、再抵当天登记的线上券，剩下的才抵店里现买的券。"),
@@ -170,6 +177,7 @@ DEFINITIONS = [
 DEFINITIONS_PT = {
     "权益金": "Pacotes + vouchers de retorno + experiência + vouchers online (desde 25/10/2026 inclui os vouchers comprados online, 开业券). É o dinheiro recebido por pacotes, vouchers e serviços pagos na hora, mais as compras online; o que foi pago com voucher/pacote não conta e estornos entram negativos. Fica acima do valor do sistema pela parte de serviços pagos na hora (o sistema só soma linhas 权益); a diferença aparece em «Verificação».",
     "卖套餐": "«Valor pago» das linhas 权益 da categoria 套餐 (pacotes), sem a parte paga com voucher/pacote.",
+    "人效": "Total de atendimentos ÷ terapeuta-dias (atendimentos por terapeuta por dia). Terapeuta-dias = soma, dia a dia, das colaboradoras que fizeram ao menos um serviço (pela coluna «员工» das vendas, não pela escala): quem trabalhou e não atendeu ninguém não conta, então a produtividade real é um pouco menor. Detalhe por dia/semana/mês na aba «人效 Produtividade».",
     "二次券": "Vouchers vendidos na loja (dinheiro/cartão/PIX) e não usados no mesmo dia; estornos de voucher entram aqui negativos.",
     "体验": "Serviços pagos na hora (linhas 项目 pagas com dinheiro/cartão/PIX) + vouchers comprados na loja e usados no mesmo dia. «Mesmo dia» é estimado por cliente e dia: os serviços pagos com voucher consomem primeiro vouchers comprados antes, depois vouchers online do dia, e só então os comprados na loja.",
     "线上卖券": "Linhas 权益 e 项目 pagas com 开业券 (voucher comprado online). Não têm vendedora, por isso não entram nas vendas da equipe.",
@@ -373,6 +381,11 @@ def compute(df):
     m["叠加率"] = m["数量合计"] / m["总客次"] if m["总客次"] else 0
     m["新客成交率"] = m["成交人数"] / m["新客客次"] if m["新客客次"] else None
     m["业绩"] = m["权益金"] - m["线上卖券"]   # 线上卖券没有销售员工，不算员工业绩
+    # 人效 = 总客次 ÷ 护理师人天（每天有做项目的员工人数相加；来自售出明细，不是排班表）
+    per_day = proj[proj["员工"].notna()].groupby(["日期", "员工"])["客次"].sum()
+    m["护理师人天"] = int((per_day > 0).sum())
+    m["营业天数"] = int((proj.groupby("日期")["客次"].sum() > 0).sum())
+    m["人效"] = m["总客次"] / m["护理师人天"] if m["护理师人天"] else None
     return m
 
 
@@ -711,6 +724,8 @@ def ratio_formula(num, den):
 def goal_text(metric, v):
     if metric == "新客成交率":
         return f"{v:.0%}"
+    if metric == "人效":
+        return f"{v:.1f}"
     if metric in ("总客次", "会员客次", "新客客次", "网红/邀约", "成交人数", "二次券成交数"):
         return f"{v:,.0f}"
     return f"R$ {v:,.0f}"
@@ -732,11 +747,12 @@ def write_metric_row(ws, row, col0, m):
         "体验客单价": f"=IF({cols['总客次']}{row}=0,0,{cols['营业额']}{row}/{cols['总客次']}{row})",
         "叠加率": f"=IF({cols['总客次']}{row}=0,0,{hcols['数量合计']}{row}/{cols['总客次']}{row})",
         "新客成交率": rate_formula(cols["成交人数"], cols["新客客次"], row),
+        "人效": rate_formula(cols["总客次"], hcols["护理师人天"], row),
     }
     for k, letter in cols.items():
         cell = ws[f"{letter}{row}"]
         if m is not None:
-            cell.value = formulas.get(k, round(m[k], 2))
+            cell.value = formulas[k] if k in formulas else round(m[k], 2)
         style_value(cell, k)
     for k, letter in hcols.items():
         cell = ws[f"{letter}{row}"]
@@ -1004,6 +1020,56 @@ def write_week_matrix(ws, r, title, matrix, metric):
 def short_week(label):
     """「W3 15/out-21/out（截至/até 18/out）」→「W3（截至/até 18/out）」，用于表头和图表坐标轴。"""
     return label.split()[0] + (label[label.index("（"):] if "（" in label else "")
+
+
+def write_efficiency_sheet(wb, rep):
+    """人效：月度 + 各周（总客次、护理师人天、营业天数、日均上班护理师、人效），再列每日明细和每日人效图。"""
+    ws = wb.create_sheet(SHEETS["人效"])
+    ws["A1"] = f"人效 Produtividade  {period(rep)}"
+    ws["A1"].font = font(size=14, bold=True)
+    note(ws, 2, 1, bi("人效 = 总客次 ÷ 护理师人天。护理师人天 = 每天有做项目的员工人数相加（来自售出明细，不是排班表）。",
+                      "Produtividade = atendimentos ÷ terapeuta-dias (colaboradoras que atenderam em cada dia, pelas vendas, "
+                      "não pela escala)."))
+    r = 4
+    ws.cell(r, 1, "月度 / 周度人效").font = font(bold=True, size=11)
+    heads = ["期间", "总客次", "护理师人天", "营业天数", "日均上班护理师", "人效"]
+    for j, h in enumerate(heads, 1):
+        style_header(ws.cell(r + 1, j, h))
+    for i, (label, m) in enumerate([("月度合计", rep.month), *rep.weeks]):
+        row = r + 2 + i
+        label_cell(ws, row, 1, label, bold=i == 0, fill=SUBTOTAL_FILL if i == 0 else None)
+        for j, k in enumerate(["总客次", "护理师人天", "营业天数"], 2):
+            style_value(ws.cell(row, j, None if m is None else m[k]), k)
+        style_value(ws.cell(row, 5, ratio_formula(f"C{row}", f"D{row}") if m else None), "日均上班护理师")
+        style_value(ws.cell(row, 6, ratio_formula(f"B{row}", f"C{row}") if m else None), "人效")
+    r = r + 2 + 1 + len(rep.weeks) + 2
+
+    ws.cell(r, 1, "每日人效").font = font(bold=True, size=11)
+    heads = ["日期", "星期", "总客次", "上班护理师", "人效", "当天做项目的护理师"]
+    for j, h in enumerate(heads, 1):
+        style_header(ws.cell(r + 1, j, h))
+    proj = rep.context[(rep.context["类型"] == "项目") & rep.context["员工"].notna()]
+    per_day = proj.groupby(["日期", "员工"])["客次"].sum()
+    first = r + 2
+    for i, (d, m) in enumerate(rep.daily):
+        row = first + i
+        names = sorted(n for (day, n), v in per_day.items() if day.date() == d and v > 0)
+        values = [dm(d), f"周{WEEKDAYS[d.weekday()]} {PT_WEEKDAYS[d.weekday()]}", m["总客次"], m["护理师人天"],
+                  ratio_formula(f"C{row}", f"D{row}"), "、".join(names)]
+        for j, v in enumerate(values, 1):
+            c = ws.cell(row, j, v)
+            c.font, c.border = font(), BORDER
+            if not m["总客次"]:
+                c.fill = HELPER_FILL
+        ws.cell(row, 5).number_format = METRIC_FORMATS["人效"]
+    last = first + len(rep.daily) - 1
+    data_bar(ws, f"E{first}:E{last}")
+    for letter, w in zip("ABCDEF", [30, 14, 12, 16, 12, 80]):
+        ws.column_dimensions[letter].width = w
+    chart = make_chart(ws, r + 1, last, [5], "每日人效（客次/人）\nAtendimentos por terapeuta por dia",
+                       width=22, height=8, num_fmt="0.0")
+    ws.add_chart(chart, "H4")
+    landscape(ws)
 
 
 def write_category_sheet(wb, rep):
@@ -1299,7 +1365,8 @@ def write_tiles(ws, rep):
         ("权益金", '"R$ "#,##0', m["权益金"],
          f"含线上卖券 Online R$ {m['线上卖券']:,.0f}（{m['线上卖券'] / m['权益金']:.0%}）" if m["权益金"] else ""),
         ("营业额", '"R$ "#,##0', m["营业额"], "项目核销价值 · Valor dos serviços realizados"),
-        ("总客次", "#,##0", m["总客次"], "做项目的人次 · Serviços realizados"),
+        ("总客次", "#,##0", m["总客次"],
+         f"人效 {m['人效']:.1f} 客次/人/天 · por terapeuta/dia" if m["人效"] else "做项目的人次 · Serviços realizados"),
         ("新客客次", "#,##0", m["新客客次"],
          f"占总客次 / do total {m['新客客次'] / m['总客次']:.0%}" if m["总客次"] else ""),
         ("会员客次", "#,##0", m["会员客次"], "套餐核销 · Pagos com pacote"),
@@ -1480,6 +1547,7 @@ def write_report(path, df, rep, notes, source_name, week_mode):
     wb.active.title = SHEETS["经营报表"]
     if rep.targets:
         write_target_sheet(wb, rep)
+    write_efficiency_sheet(wb, rep)
     write_category_sheet(wb, rep)
 
     ds = wb.create_sheet(SHEETS["指标说明"])
