@@ -38,9 +38,10 @@ KNOWN_PAY_METHODS = {
 }
 
 MONTH_METRICS = ["权益金", "营业额", "总客次", "会员客次", "新客客次", "网红/邀约",
-                 "成交人数", "成交客单", "二次券成交数", "体验客单价", "叠加率", "新客成交率", "人效"]
-HELPER_METRICS = ["套餐成交金额", "项目次数", "护理师人天"]
-STAFF_METRICS = ["业绩", "营业额", "总客次", "成交人数", "二次券成交人数", "新客成交率"]
+                 "成交人数", "新客成交人数", "成交客单", "二次券成交数", "体验客单价", "叠加率", "新客成交率",
+                 "续卡人数", "续卡金额", "会员复购率", "人效"]
+HELPER_METRICS = ["套餐成交金额", "项目次数", "护理师人天", "会员到店人数"]
+STAFF_METRICS = ["业绩", "营业额", "总客次", "成交人数", "新客成交人数", "二次券成交人数", "新客成交率"]
 STAFF_HELPERS = ["新客客次"]
 CUSTOMER_TYPES = ["新客客次", "会员客次", "网红/邀约"]
 MIX_TYPES = ["新客项目次数", "会员项目次数", "网红/邀约项目次数"]   # 项目分类页按项目次数统计
@@ -50,7 +51,7 @@ UNASSIGNED = "未指定员工"
 BREAKDOWN = ["卖套餐", "二次券", "体验", "线上卖券"]
 BREAKDOWN_COLS = {"卖套餐": "套餐额", "二次券": "二次券额", "体验": "体验额", "线上卖券": "线上额"}
 TARGETS_DIR = Path(__file__).resolve().parent / "targets"  # targets/<门店>/<YYYY-MM>.json
-RATE_METRICS = {"新客成交率", "体验客单价", "成交客单", "叠加率", "人效"}  # 比率型目标：任何时间段的目标都一样
+RATE_METRICS = {"新客成交率", "体验客单价", "成交客单", "叠加率", "人效", "会员复购率"}  # 比率型目标：任何时间段的目标都一样
 METRIC_ALIASES = {"客单价": "体验客单价"}
 WEEKDAYS = "一二三四五六日"
 UNCATEGORIZED = "（未分类）"
@@ -59,7 +60,7 @@ METRIC_FORMATS = {
     "权益金": "#,##0.00", "营业额": "#,##0.00", "成交客单": "#,##0", "体验客单价": "#,##0.00",
     "叠加率": "0.00", "套餐成交金额": "#,##0.00", "业绩": "#,##0.00", "平均单价": "#,##0.00",
     **{k: "#,##0.00" for k in BREAKDOWN},
-    "人效": "0.00", "日均上班护理师": "0.0",
+    "人效": "0.00", "日均上班护理师": "0.0", "会员复购率": "0.00%", "续卡金额": "#,##0.00",
     "客次占比": "0.0%", "项目次数占比": "0.0%", "营业额占比": "0.0%", "新客成交率": "0.00%", "月达成率": "0.0%", "累计达成率": "0.0%",
 }
 
@@ -79,6 +80,8 @@ PT = {
     "营业额占比": "% Receita", "平均单价": "Preço Médio",
     "卖套餐": "Pacotes", "二次券": "Vouchers de Retorno", "体验": "Experiência", "线上卖券": "Vouchers Online",
     "权益金拆解": "Composição das Vendas", "占比": "% do Total",
+    "新客成交人数": "Fechamentos Novos Clientes", "续卡人数": "Renovações de Pacote", "续卡金额": "Valor de Renovação",
+    "会员复购率": "Recompra Clientes Pacote", "会员到店人数": "Clientes Pacote Atendidos",
     "人效": "Atend. por Terapeuta/Dia", "护理师人天": "Terapeuta-Dias", "营业天数": "Dias com Atendimento",
     "日均上班护理师": "Terapeutas por Dia", "上班护理师": "Terapeutas no Dia",
     "当天做项目的护理师": "Terapeutas que Atenderam", "月度 / 周度人效": "Produtividade por Mês e Semana",
@@ -104,7 +107,7 @@ PT = {
     "员工·业绩": "Equipe · Vendas", "员工·营业额/总客次": "Equipe · Receita / Atendimentos",
     "员工·成交人数": "Equipe · Fechamentos", "员工·二次券成交人数": "Equipe · Clientes Voucher Retorno",
     "员工·新客成交率": "Equipe · Conversão Novos Clientes", "项目分类": "Categorias de Serviço",
-    "同期目标 / 同期达成率": "Meta até Hoje / % Meta até Hoje", "周目标 / 日目标": "Meta Semanal / Diária",
+    "同期目标 / 同期达成率": "Meta até Hoje / % Meta até Hoje", "续卡人数 / 续卡金额": "Renovações / Valor", "周目标 / 日目标": "Meta Semanal / Diária",
     "周度划分": "Divisão das Semanas",
 }
 PT_SUFFIX = {"累计目标": "Meta Acumulada", "累计实际": "Realizado Acumulado", "累计": "Acumulado",
@@ -160,12 +163,15 @@ DEFINITIONS = [
     ("二次券成交数", "「二次券」的张数：店里现场掏钱买的代金券（现金/卡/PIX，或组合支付里有现金部分），去掉当天就用掉的（算体验）。"),
     ("体验客单价", "营业额 ÷ 总客次（表内公式）。"),
     ("叠加率", "项目次数 ÷ 总客次（表内公式）：平均每次到店做几个项目。项目次数 = 类型=项目 的行数（组合支付的拆分行不算，退款扣减）。"),
-    ("新客成交率", "成交人数 ÷ 新客客次 × 100%（表内公式）。新客客次为 0 时留空。"),
+    ("新客成交人数", "买套餐的客户里，客户编号是纯数字的（新客）人数。"),
+    ("新客成交率", "新客成交人数 ÷ 新客客次 × 100%（表内公式；2026-10-25 起分子只算新客，会员续卡算进会员复购率）。新客客次为 0 时留空。"),
+    ("续卡人数 / 续卡金额", "买套餐的客户里，客户编号是字母+数字（会员）的人数和套餐金额（现金类支付）。"),
+    ("会员复购率", "有效会员复购率 = 统计周期内复购（续卡）的会员数 ÷ 统计周期内到店的会员总客数（去重；续卡但没做项目的会员也算到店）。"),
     ("员工·业绩", "该员工名下的 卖套餐 + 二次券 + 体验（不含线上卖券）。明细里「实业绩」列全为 0，故不用。"),
     ("员工·营业额/总客次", "该员工名下的项目营业额 / 该员工服务的到店次数（一次到店有两位员工服务时，两人各算 1 次）。"),
     ("员工·成交人数", "该员工名下买套餐的客户人数（去重）。"),
     ("员工·二次券成交人数", "该员工名下买「二次券」的客户人数（去重，当天就用掉的券不算）。"),
-    ("员工·新客成交率", "该员工名下成交人数 ÷ 该员工服务的新客客次（灰色「计算用:新客客次」列）。"
+    ("员工·新客成交率", "该员工名下新客成交人数 ÷ 该员工服务的新客客次（灰色「计算用:新客客次」列）。"
                      "只卖不做项目的员工新客客次为 0，成交率留空。"),
     ("项目分类", "类型=项目 的行按收银系统「分类」汇总，按项目次数算（一次到店做两个分类的项目各算 1 次）；"
                 "新客/会员/网红 按那次到店的类型；客户人数=做过该分类项目的去重客户数；平均单价=营业额÷项目次数。"),
@@ -197,12 +203,15 @@ DEFINITIONS_PT = {
     "二次券成交数": "Quantidade de «vouchers de retorno»: vendidos na loja (dinheiro/cartão/PIX ou parte em dinheiro), sem os usados no mesmo dia (esses contam como experiência).",
     "体验客单价": "Receita de serviços ÷ total de atendimentos (fórmula).",
     "叠加率": "Serviços ÷ visitas (fórmula): quantos serviços por visita, em média. Serviços = linhas tipo 项目 (sem linhas de pagamento dividido; estornos descontam).",
-    "新客成交率": "Fechamentos de pacote ÷ atendimentos de novos clientes × 100% (fórmula). Fica em branco se não houver novos clientes.",
+    "新客成交人数": "Clientes que compraram pacote com código só de números (clientes novos).",
+    "新客成交率": "Fechamentos de novos clientes ÷ visitas de novos clientes × 100% (fórmula; desde 25/10/2026 só conta novos — renovações de clientes de pacote vão para a recompra). Fica em branco se não houver visitas de novos clientes.",
+    "续卡人数 / 续卡金额": "Clientes de pacote (código com letra + número) que compraram pacote de novo, e o valor pago.",
+    "会员复购率": "Recompra de clientes de pacote = clientes de pacote que renovaram no período ÷ clientes de pacote atendidos no período (sem repetir; quem renovou sem fazer serviço também conta).",
     "员工·业绩": "Pacotes + vouchers de retorno + experiência no nome da colaboradora (sem vouchers online). A coluna 实业绩 do sistema está toda zerada, por isso não é usada.",
     "员工·营业额/总客次": "Receita de serviços / visitas atendidas pela colaboradora (se duas atenderam a mesma visita, conta para as duas).",
     "员工·成交人数": "Clientes (sem repetir) que compraram pacote com a colaboradora.",
     "员工·二次券成交人数": "Clientes (sem repetir) que compraram voucher de retorno com a colaboradora (vouchers usados no mesmo dia não contam).",
-    "员工·新客成交率": "Fechamentos da colaboradora ÷ atendimentos de novos clientes que ela fez (coluna cinza «Base»). Quem só vende e não atende fica em branco.",
+    "员工·新客成交率": "Fechamentos de novos clientes da colaboradora ÷ visitas de novos clientes que ela atendeu (coluna cinza «Base»). Quem só vende e não atende fica em branco.",
     "项目分类": "Serviços (linhas tipo 项目) por «categoria» do sistema, contados por serviço (uma visita com duas categorias conta em cada uma); novos/pacote/influencers pelo tipo da visita; clientes únicos = clientes sem repetir; preço médio = receita ÷ serviços.",
     "月达成率": "Realizado ÷ meta do mês. Metas vêm de targets/<AAAA-MM>.json (enviadas todo mês).",
     "目标进度": "Quanto da meta do mês deveria estar feito até o último dia do relatório, somando as metas diárias (dias fechados = 0).",
@@ -312,6 +321,11 @@ def classify_rights(df):
     return df
 
 
+def is_member_code(codes):
+    """会员编号是字母+数字（如 B14），新客是纯数字（用户 2026-10-25 定）。"""
+    return codes.astype(str).str.contains(r"[A-Za-z]", regex=True)
+
+
 def classify_visits(df):
     """客次 = 到店次数：同一客户同一天来店算 1 次，不管做几个项目（做了几个项目看叠加率 = 项目次数 ÷ 客次）。
     每次到店的类型：有套餐核销 = 会员；否则有免单 = 网红/邀约；否则看客户编号——会员编号是字母+数字（如 B14），
@@ -324,7 +338,7 @@ def classify_visits(df):
     visit = p.groupby("到店键")
     has = lambda kind: visit["支付归类"].transform(lambda x: (x == kind).any())
     code = p["客户编号"].astype(str) if "客户编号" in p.columns else pd.Series("", index=p.index)
-    member_code = code.str.contains(r"[A-Za-z]", regex=True)
+    member_code = is_member_code(code)
     kind = pd.Series("新客", index=p.index)
     kind[member_code] = "会员"
     kind[has("免单")] = "网红"
@@ -411,7 +425,18 @@ def compute(df):
     m["成交客单"] = m["套餐成交金额"] / m["成交人数"] if m["成交人数"] else 0
     m["体验客单价"] = m["营业额"] / m["总客次"] if m["总客次"] else 0
     m["叠加率"] = m["项目次数"] / m["总客次"] if m["总客次"] else 0
-    m["新客成交率"] = m["成交人数"] / m["新客客次"] if m["新客客次"] else None
+    # 买套餐的人按客户编号分：字母+数字 = 会员续卡，纯数字 = 新客成交
+    codes = package["客户编号"] if "客户编号" in package.columns else pd.Series("", index=package.index)
+    paid = package.assign(_编号=codes).groupby("客户").agg(现金=("现金类支付", "sum"), 编号=("_编号", "first"))
+    paid = paid[paid["现金"] > 0]
+    renew = is_member_code(paid["编号"])
+    m["新客成交人数"] = int((~renew).sum())
+    m["续卡人数"] = int(renew.sum())
+    m["续卡金额"] = float(paid.loc[renew, "现金"].sum())
+    members = set(visits.loc[visits["访客类型"] == "会员", "客户"]) | set(paid.index[renew])
+    m["会员到店人数"] = len(members)
+    m["会员复购率"] = m["续卡人数"] / m["会员到店人数"] if m["会员到店人数"] else None
+    m["新客成交率"] = m["新客成交人数"] / m["新客客次"] if m["新客客次"] else None
     m["业绩"] = m["权益金"] - m["线上卖券"]   # 线上卖券没有销售员工，不算员工业绩
     # 人效 = 总客次 ÷ 护理师人天（每天有做项目的员工人数相加；来自售出明细，不是排班表）
     per_day = proj[proj["员工"].notna()].groupby(["日期", "员工"])["客次"].sum()
@@ -751,11 +776,11 @@ def ratio_formula(num, den):
 
 
 def goal_text(metric, v):
-    if metric == "新客成交率":
+    if metric in ("新客成交率", "会员复购率"):
         return f"{v:.0%}"
     if metric == "人效":
         return f"{v:.1f}"
-    if metric in ("总客次", "会员客次", "新客客次", "网红/邀约", "成交人数", "二次券成交数"):
+    if metric in ("总客次", "会员客次", "新客客次", "网红/邀约", "成交人数", "新客成交人数", "续卡人数", "二次券成交数"):
         return f"{v:,.0f}"
     return f"R$ {v:,.0f}"
 
@@ -775,7 +800,8 @@ def write_metric_row(ws, row, col0, m):
         "成交客单": f"=IF({cols['成交人数']}{row}=0,0,{hcols['套餐成交金额']}{row}/{cols['成交人数']}{row})",
         "体验客单价": f"=IF({cols['总客次']}{row}=0,0,{cols['营业额']}{row}/{cols['总客次']}{row})",
         "叠加率": f"=IF({cols['总客次']}{row}=0,0,{hcols['项目次数']}{row}/{cols['总客次']}{row})",
-        "新客成交率": rate_formula(cols["成交人数"], cols["新客客次"], row),
+        "新客成交率": rate_formula(cols["新客成交人数"], cols["新客客次"], row),
+        "会员复购率": rate_formula(cols["续卡人数"], hcols["会员到店人数"], row),
         "人效": rate_formula(cols["总客次"], hcols["护理师人天"], row),
     }
     for k, letter in cols.items():
@@ -834,13 +860,13 @@ def write_month_targets(ws, row, col0, rep):
 
 
 def write_staff_values(ws, row, col0, m, bold=False, fill=None):
-    """员工行。新客成交率写公式：成交人数 ÷ 右侧灰色「计算用:新客客次」。m=None 时写合计行（上方各行求和）。"""
+    """员工行。新客成交率写公式：新客成交人数 ÷ 右侧灰色「计算用:新客客次」。m=None 时写合计行（上方各行求和）。"""
     col = staff_columns(col0)
     for k, letter in col.items():
         c = ws[f"{letter}{row}"]
         helper = k in STAFF_HELPERS
         if k == "新客成交率":
-            c.value = rate_formula(col["成交人数"], col["新客客次"], row)
+            c.value = rate_formula(col["新客成交人数"], col["新客客次"], row)
         elif isinstance(m, tuple):
             c.value = f"=SUM({letter}{m[0]}:{letter}{m[1]})"
         else:
@@ -1401,9 +1427,11 @@ def write_tiles(ws, rep):
          f"占总客次 / do total {m['新客客次'] / m['总客次']:.0%}" if m["总客次"] else ""),
         ("会员客次", "#,##0", m["会员客次"], "套餐核销 · Pagos com pacote"),
         ("网红/邀约", "#,##0", m["网红/邀约"], "免单类 · Cortesias"),
-        ("成交人数", "#,##0", m["成交人数"], "买套餐的客户 · Clientes que compraram pacote"),
+        ("成交人数", "#,##0", m["成交人数"],
+         f"新客 {m['新客成交人数']} · 续卡 {m['续卡人数']}（复购率 {m['会员复购率']:.0%}）" if m["会员复购率"] is not None
+         else f"新客 {m['新客成交人数']} · 续卡 {m['续卡人数']}"),
         ("新客成交率", "0.00%", rate if rate is not None else "-",
-         f"{m['成交人数']} ÷ {m['新客客次']}（成交 ÷ 新客 · fechamentos ÷ novos）"),
+         f"{m['新客成交人数']} ÷ {m['新客客次']}（新客成交 ÷ 新客客次 · fechamentos ÷ visitas novas）"),
         ("成交客单", '"R$ "#,##0', m["成交客单"], "套餐金额 ÷ 成交人数 · Pacotes ÷ fechamentos"),
         ("二次券成交数", "#,##0", m["二次券成交数"], f"{m['二次券成交人数']} 位客户 · clientes"),
         ("体验客单价", '"R$ "#,##0.00', m["体验客单价"], "营业额 ÷ 总客次 · Receita ÷ atendimentos"),
@@ -1625,7 +1653,7 @@ def write_report(path, df, rep, notes, source_name, week_mode):
 def fmt(k, v):
     if v is None:
         return "-"
-    if k == "新客成交率":
+    if k in ("新客成交率", "会员复购率"):
         return f"{v:.2%}"
     return f"{v:,.2f}" if isinstance(v, float) else str(v)
 
