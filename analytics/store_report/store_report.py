@@ -130,7 +130,8 @@ def bi(zh, pt):
 
 DEFINITIONS = [
     ("权益金", "卖套餐 + 二次券 + 体验 + 线上卖券（2026-10-25 起含线上开业券）。即门店当期卖套餐、卖券、做项目直接收的钱，"
-             "加上客人线上买券的钱；用代金券/套餐抵扣的部分不算，退款为负数自动抵扣。"),
+             "加上客人线上买券的钱；用代金券/套餐抵扣的部分不算，退款为负数自动抵扣。"
+             "比收银系统里的权益金多出「做项目时直接付钱」的部分（系统只统计类型=权益），差额见「数据检查」。"),
     ("卖套餐", "类型=权益、分类=套餐 的「支付金额」，不含用代金券/套餐抵扣的部分。"),
     ("二次券", "店里卖出、当天没有用掉的券（类型=权益、分类=代金券，现金/卡/PIX 支付）；券的退款按负数记在这里。"),
     ("体验", "做项目时直接付钱（类型=项目、现金/卡/PIX 支付）＋ 店里现买、当天就用掉的券。当天是否用掉按同一客户同一天估算："
@@ -167,7 +168,7 @@ DEFINITIONS = [
 
 
 DEFINITIONS_PT = {
-    "权益金": "Pacotes + vouchers de retorno + experiência + vouchers online (desde 25/10/2026 inclui os vouchers comprados online, 开业券). É o dinheiro recebido por pacotes, vouchers e serviços pagos na hora, mais as compras online; o que foi pago com voucher/pacote não conta e estornos entram negativos.",
+    "权益金": "Pacotes + vouchers de retorno + experiência + vouchers online (desde 25/10/2026 inclui os vouchers comprados online, 开业券). É o dinheiro recebido por pacotes, vouchers e serviços pagos na hora, mais as compras online; o que foi pago com voucher/pacote não conta e estornos entram negativos. Fica acima do valor do sistema pela parte de serviços pagos na hora (o sistema só soma linhas 权益); a diferença aparece em «Verificação».",
     "卖套餐": "«Valor pago» das linhas 权益 da categoria 套餐 (pacotes), sem a parte paga com voucher/pacote.",
     "二次券": "Vouchers vendidos na loja (dinheiro/cartão/PIX) e não usados no mesmo dia; estornos de voucher entram aqui negativos.",
     "体验": "Serviços pagos na hora (linhas 项目 pagas com dinheiro/cartão/PIX) + vouchers comprados na loja e usados no mesmo dia. «Mesmo dia» é estimado por cliente e dia: os serviços pagos com voucher consomem primeiro vouchers comprados antes, depois vouchers online do dia, e só então os comprados na loja.",
@@ -523,6 +524,12 @@ def checks(df, df_all, months, month, sheet, rep):
     if no_date:
         out.append(bi(f"⚠ {no_date} 行没有账务日期，月度和员工数据已计入，周度数据未计入。",
                       f"{no_date} linhas sem data: entram no mês e na equipe, mas não nas semanas."))
+    direct = df.loc[df["类型"] == "项目", ["体验额", "线上额"]].sum()
+    if direct.sum():
+        out.append(bi(f"权益金比收银系统多 R$ {direct.sum():,.2f}：做项目时直接付钱 R$ {direct['体验额']:,.2f}（算体验）"
+                      f"＋ 做项目时直接用开业券 R$ {direct['线上额']:,.2f}（算线上卖券）；系统的权益金只算类型=权益。",
+                      f"Vendas acima do sistema em R$ {direct.sum():,.2f}: serviços pagos na hora R$ {direct['体验额']:,.2f} "
+                      f"+ serviços pagos com 开业券 R$ {direct['线上额']:,.2f} (o sistema só soma linhas 权益)."))
     for name, m, _ in staff:
         if name == UNASSIGNED:
             out.append(bi(f"⚠ 有记录没填员工：业绩 {m['业绩']:,.2f}、营业额 {m['营业额']:,.2f}、"
