@@ -4,8 +4,8 @@
 用法:
     python3 store_report.py 售出明细.xlsx                      # 输出到当前目录
     python3 store_report.py 售出明细.xlsx -o 报表.xlsx
-    python3 store_report.py 售出明细.xlsx --month 2026-10      # 文件含多个月时只取某月
-    python3 store_report.py 售出明细.xlsx --weeks natural      # 周按 周一~周日 划分（默认 1-7日=W1）
+    python3 store_report.py 售出明细.xlsx --month 2026-10      # 指定报表月份（默认取文件里数据最多的月份）
+    python3 store_report.py 售出明细.xlsx --weeks fixed        # 周按 1-7日=W1… 划分（默认 周一~周日，跨月的周算满 7 天）
     python3 store_report.py 售出明细.xlsx --targets 目标.json   # 指定目标文件（默认 targets/<门店>/<YYYY-MM>.json）
     python3 store_report.py 售出明细.xlsx --store Morumbi      # 指定门店（默认按「权益归属门店」自动识别）
 
@@ -148,8 +148,9 @@ DEFINITIONS = [
     ("同期目标 / 同期达成率", "累加型指标（权益金、营业额、总客次等）：同期目标 = 月目标 × 目标进度；"
                        "比率型指标（新客成交率、体验客单价）：同期目标 = 月目标。同期达成率 ≥ 100% 记 ✓，否则 ✗。"),
     ("周目标 / 日目标", "累加型指标按「每日目标」的比例拆到每天，再按周相加；比率型指标每周、每天的目标与月目标相同。"),
-    ("周度划分", "默认：每月 1-7日=W1、8-14日=W2、15-21日=W3、22-28日=W4、29日-月底=W5（按「账务日期」）。"
-                "可用 --weeks natural 改成 周一~周日 的自然周。"),
+    ("周度划分", "默认：周一~周日（按「账务日期」）。W1 = 包含 1 号的那一周，从那周的周一开始，跨月的周算满 7 天"
+                "（例如 2026-10 的 W1 = 9/28–10/4）；月度、员工月度、每日和目标只算本月。"
+                "导出明细时从 W1 的周一开始导，第一周才完整。可用 --weeks fixed 改回 1-7日=W1…"),
 ]
 
 
@@ -176,7 +177,7 @@ DEFINITIONS_PT = {
     "目标进度": "Quanto da meta do mês deveria estar feito até o último dia do relatório, somando as metas diárias (dias fechados = 0).",
     "同期目标 / 同期达成率": "Indicadores somáveis (vendas, receita, atendimentos): meta até hoje = meta do mês × progresso esperado. Indicadores de taxa (conversão, ticket médio): meta até hoje = meta do mês. ≥ 100% = ✓, abaixo = ✗.",
     "周目标 / 日目标": "Indicadores somáveis são divididos por dia na proporção das metas diárias e somados por semana; indicadores de taxa têm a mesma meta todo dia/semana.",
-    "周度划分": "Padrão: dias 1-7 = W1, 8-14 = W2, 15-21 = W3, 22-28 = W4, 29 ao fim do mês = W5 (pela data contábil). Com --weeks natural vira semana de segunda a domingo.",
+    "周度划分": "Padrão: semana de segunda a domingo (pela data contábil). W1 = a semana que contém o dia 1, desde a segunda-feira; semanas que cruzam o mês contam os 7 dias (ex.: em 2026-10, W1 = 28/09–04/10). Mês, equipe, dias e metas contam só o mês do relatório. Exporte a partir da segunda-feira da W1 para a 1ª semana ficar completa. Com --weeks fixed volta a dias 1-7 = W1…",
 }
 
 
@@ -323,14 +324,16 @@ def mix_table(proj, keys):
 
 
 def week_ranges(year, month, mode):
-    """返回 [(标签, 开始日, 结束日)]，覆盖整个自然月。"""
+    """返回 [(标签, 开始日, 结束日)]，覆盖整个自然月。
+    natural = 周一~周日，跨月的周算满 7 天（W1 从包含 1 号那周的周一开始，最后一周到包含月底那周的周日）；
+    fixed = 1-7日=W1、8-14日=W2…，只在本月内。"""
+    first = date(year, month, 1)
     last = date(year, month, calendar.monthrange(year, month)[1])
     if mode == "natural":
-        bounds, s = [], date(year, month, 1)
+        bounds, s = [], first - timedelta(days=first.weekday())
         while s <= last:
-            e = min(s + timedelta(days=6 - s.weekday()), last)
-            bounds.append((s, e))
-            s = e + timedelta(days=1)
+            bounds.append((s, s + timedelta(days=6)))
+            s += timedelta(days=7)
     else:
         bounds = [(date(year, month, d), min(date(year, month, d) + timedelta(days=6), last))
                   for d in range(1, last.day + 1, 7)]
@@ -349,28 +352,40 @@ class Report:
     category_weeks: dict           # {"总客次"/"营业额": DataFrame(分类 × 周)}
     week_defs: list                # [(标签, 开始日, 结束日)]，整月所有周
     daily: list                    # [(日期, 指标)]，从月初到最后一天
+    context: object = None         # 周度用到的全部行（跨月的周会含上月/下月的天）
+    data_span: tuple = None        # 周度数据实际覆盖的 (第一天, 最后一天)
     targets: object = None         # Targets 或 None
+    neighbor_targets: dict = None  # 跨月的周用到的相邻月份目标 {"YYYY-MM": Targets}
     store: str = None              # 门店名，例如 Ibirapuera
 
 
-def build(df, week_mode):
+def in_days(rows, first, last):
+    return rows[(rows["日期"] >= pd.Timestamp(first)) & (rows["日期"] <= pd.Timestamp(last))]
+
+
+def build(df, week_mode, context=None):
+    """df = 报表月份的行；context = 整个文件（跨月的周用它补上月/下月的天，月度数据只看 df）。"""
     start, end = df["日期"].min().date(), df["日期"].max().date()
+    defs = week_ranges(start.year, start.month, week_mode)
+    ctx = in_days(df if context is None else context, defs[0][1], defs[-1][2])
+    data_first, data_last = ctx["日期"].min().date(), ctx["日期"].max().date()
     week_defs = []
-    for label, ws, we in week_ranges(start.year, start.month, week_mode):
+    for label, ws, we in defs:
         text = f"{label} {dm(ws)}-{dm(we)}"
-        if ws <= end < we:
-            text += f"（截至/até {dm(end)}）"
+        if ws < data_first <= we:
+            text += f"（从/desde {dm(data_first)}）"
+        if ws <= data_last < we:
+            text += f"（截至/até {dm(data_last)}）"
         week_defs.append((text, ws, we))
-    active_weeks = [w for w in week_defs if w[1] <= end]
+    active_weeks = [w for w in week_defs if w[1] <= data_last]
 
-    def in_week(rows, ws, we):
-        return rows[(rows["日期"] >= pd.Timestamp(ws)) & (rows["日期"] <= pd.Timestamp(we))]
-
-    weeks = [(text, compute(in_week(df, ws, we)) if ws <= end else None) for text, ws, we in week_defs]
+    weeks = [(text, compute(in_days(ctx, ws, we)) if ws <= data_last else None) for text, ws, we in week_defs]
 
     staff = []
+    ctx_staff = ctx["员工"].fillna(UNASSIGNED)
     for name, rows in df.groupby(df["员工"].fillna(UNASSIGNED)):
-        staff.append((name, compute(rows), [(text, compute(in_week(rows, ws, we))) for text, ws, we in active_weeks]))
+        wrows = ctx[ctx_staff == name]
+        staff.append((name, compute(rows), [(text, compute(in_days(wrows, ws, we))) for text, ws, we in active_weeks]))
     staff.sort(key=lambda x: (x[0] == UNASSIGNED, -x[1]["业绩"], -x[1]["营业额"]))
     staff = [s for s in staff if s[0] != UNASSIGNED or any(s[1][k] for k in STAFF_METRICS)]
 
@@ -380,25 +395,44 @@ def build(df, week_mode):
     order = {c: i for i, c in enumerate(categories.index)}
     items = items.sort_values(["总客次"], ascending=False).sort_index(
         level=0, key=lambda idx: idx.map(order), sort_remaining=False, kind="stable")
+    ctx_proj = ctx[ctx["类型"] == "项目"].assign(分类=lambda x: x["分类"].fillna(UNCATEGORIZED))
     category_weeks = {
-        metric: pd.DataFrame({text: in_week(proj, ws, we).groupby("分类")[col].sum()
+        metric: pd.DataFrame({text: in_days(ctx_proj, ws, we).groupby("分类")[col].sum()
                               for text, ws, we in active_weeks}).reindex(categories.index).fillna(0)
         for metric, col in [("总客次", "客次"), ("营业额", "支付金额")]
     }
     first_day = date(start.year, start.month, 1)
     days = [first_day + timedelta(days=n) for n in range((end - first_day).days + 1)]
     daily = [(d, compute(df[df["日期"] == pd.Timestamp(d)])) for d in days]
-    return Report(start, end, compute(df), weeks, staff, categories, items, category_weeks, week_defs, daily)
+    return Report(start, end, compute(df), weeks, staff, categories, items, category_weeks, week_defs, daily,
+                  context=ctx, data_span=(data_first, data_last))
 
 
-def checks(df, months, month_arg, sheet, staff):
-    """数据检查提示（中葡双语）。以 ⚠ 开头的会标红。"""
-    first, last = df["日期"].min(), df["日期"].max()
-    out = [bi(f"读取 sheet「{sheet}」共 {len(df)} 行，账务日期 {first:%Y-%m-%d} ~ {last:%Y-%m-%d}。",
-              f"Aba «{sheet}»: {len(df)} linhas, de {first:%d/%m/%Y} a {last:%d/%m/%Y}.")]
-    if len(months) > 1 and not month_arg:
-        out.append(bi(f"⚠ 文件包含多个月份（{', '.join(months)}），已合并统计；单月请加 --month。",
-                      f"O arquivo tem vários meses ({', '.join(months)}) e foram somados; para um mês só use --month."))
+def checks(df, df_all, months, month, sheet, rep):
+    """数据检查提示（中葡双语）。以 ⚠ 开头的会标红。df = 报表月份的行，df_all = 整个文件。"""
+    staff = rep.staff
+    first, last = df_all["日期"].min(), df_all["日期"].max()
+    out = [bi(f"读取 sheet「{sheet}」共 {len(df_all)} 行，账务日期 {first:%Y-%m-%d} ~ {last:%Y-%m-%d}。",
+              f"Aba «{sheet}»: {len(df_all)} linhas, de {first:%d/%m/%Y} a {last:%d/%m/%Y}.")]
+    if len(months) > 1:
+        out.append(bi(f"报表月份 {month}：月度、员工月度、每日和目标只算 {month}；其他月份的天只用于跨月的周（周一~周日）。",
+                      f"Mês do relatório: {month}. Mês, equipe, dias e metas contam só {month}; "
+                      f"dias de outros meses entram apenas nas semanas que cruzam o mês."))
+    outside = len(df_all) - len(df) - len(rep.context[rep.context["日期"].dt.to_period("M").astype(str) != month])
+    if outside > 0:
+        out.append(bi(f"⚠ {outside} 行既不在 {month}、也不在跨月的周里，已忽略。",
+                      f"{outside} linhas fora de {month} e das semanas do relatório foram ignoradas."))
+    (_, w1_start, w1_end), (_, wn_start, wn_end) = rep.week_defs[0], rep.week_defs[-1]
+    data_first, data_last = rep.data_span
+    if data_first > w1_start:
+        out.append(bi(f"⚠ 第一周是 {dm(w1_start)}–{dm(w1_end)}，但文件从 {dm(data_first)} 才有数据，第一周只含 "
+                      f"{dm(data_first)}–{dm(w1_end)}。要完整的第一周，导出时从 {w1_start:%Y-%m-%d} 开始导。",
+                      f"A 1ª semana vai de {dm(w1_start)} a {dm(w1_end)}, mas o arquivo começa em {dm(data_first)}. "
+                      f"Para a semana completa, exporte a partir de {w1_start:%d/%m/%Y}."))
+    month_last = date(rep.start.year, rep.start.month, calendar.monthrange(rep.start.year, rep.start.month)[1])
+    if rep.end == month_last and data_last < wn_end:
+        out.append(bi(f"最后一周到 {dm(wn_end)}（下个月），文件只到 {dm(data_last)}；下个月的天导出后会补进这一周。",
+                      f"A última semana vai até {dm(wn_end)} (mês seguinte); o arquivo vai só até {dm(data_last)}."))
     unknown = sorted(set(df["支付方式"].dropna()) - KNOWN_PAY_METHODS)
     if unknown:
         out.append(bi(f"⚠ 出现新的支付方式，已按「现金类」计入权益金/二次券：{'、'.join(unknown)}",
@@ -478,6 +512,31 @@ def period_goal(tg, metric, first, last):
     if metric in RATE_METRICS:
         return tg.goals[metric]
     return tg.goals[metric] * sum(w for d, w in tg.weights.items() if first <= d <= last)
+
+
+def week_targets(rep, label, ws, we, m):
+    """一周的 {指标: (目标, 实际)} 和提示。跨月的周用相邻月份的目标文件补上那几天；
+    补不上时，累加型指标只比较有目标的那几天（实际也只算那几天），并返回一句提示。"""
+    by_month = {f"{rep.start:%Y-%m}": rep.targets, **(rep.neighbor_targets or {})}
+    days = [ws + timedelta(days=n) for n in range((we - ws).days + 1)]
+    covered = [d for d in days if f"{d:%Y-%m}" in by_month]   # 跨月的周里缺的天只会在头或尾，所以是连续的
+    missing = [d for d in days if d not in covered]
+    sub = compute(in_days(rep.context, covered[0], covered[-1])) if missing and m is not None else None
+    out = {}
+    for k, goal in rep.targets.goals.items():
+        if k in RATE_METRICS:
+            out[k] = (goal, None if m is None else m[k])
+        else:
+            tg_of = lambda d: by_month[f"{d:%Y-%m}"]
+            g = sum(tg_of(d).goals.get(k, 0) * tg_of(d).weights.get(d, 0) for d in covered)
+            out[k] = (g, None if m is None else (sub if sub else m)[k])
+    hint = None
+    if missing:
+        hint = bi(f"{label.split()[0]}：{dm(missing[0])}–{dm(missing[-1])} 没有每日目标（缺 {missing[0]:%Y-%m} 的目标文件），"
+                  f"累加型指标的周目标和实际都只算 {dm(covered[0])}–{dm(covered[-1])}。",
+                  f"{label.split()[0]}: sem metas diárias de {dm(missing[0])} a {dm(missing[-1])}; "
+                  f"indicadores somáveis comparam só {dm(covered[0])}–{dm(covered[-1])}.")
+    return out, hint
 
 
 def target_summary(rep):
@@ -924,13 +983,18 @@ def write_target_sheet(wb, rep):
     for g, k in enumerate(goals):
         for j, h in enumerate([f"{k}目标", f"{k}实际", "达成率"]):
             style_header(ws.cell(r + 1, 2 + g * 3 + j, h))
+    hints = []
     for i, ((label, ws_, we), (_, m)) in enumerate(zip(rep.week_defs, rep.weeks)):
         row = r + 2 + i
         label_cell(ws, row, 1, label)
+        values, hint = week_targets(rep, label, ws_, we, m)
+        if hint:
+            hints.append(hint)
         for g, k in enumerate(goals):
             tcol, acol, rcol = (get_column_letter(2 + g * 3 + j) for j in range(3))
-            ws[f"{tcol}{row}"] = round(period_goal(tg, k, ws_, we), 6)
-            ws[f"{acol}{row}"] = None if m is None or m[k] is None else round(m[k], 6)
+            goal, actual = values[k]
+            ws[f"{tcol}{row}"] = round(goal, 6)
+            ws[f"{acol}{row}"] = None if actual is None else round(actual, 6)
             ws[f"{rcol}{row}"] = ratio_formula(f"{acol}{row}", f"{tcol}{row}") if m is not None else None
             style_value(ws[f"{tcol}{row}"], k)
             style_value(ws[f"{acol}{row}"], k)
@@ -940,6 +1004,10 @@ def write_target_sheet(wb, rep):
     for g in range(len(goals)):
         letter = get_column_letter(4 + g * 3)
         status_format(ws, f"{letter}{r + 2}:{letter}{last}")
+    for hint in hints:
+        last += 1
+        note(ws, last, 1, "⚠ " + hint)
+        ws.cell(last, 1).font = font(color=BAD, size=9)
 
     # 每日（只列累加型目标）
     r = last + 3
@@ -1042,9 +1110,11 @@ def write_chart_data(wb, rep):
         pos["cumulative"] = write_block(ds, pos["achieve"][1] + 3,
                                         ["日期", *(h for k in money for h in (f"{k}累计目标", f"{k}累计"))],
                                         cum_rows, "#,##0")
-        week_rows = [[short_week(label), *(v for k in money for v in (
-            round(period_goal(tg, k, ws_, we), 2), round(m[k], 2) if m else None))]
-            for (label, ws_, we), (_, m) in zip(rep.week_defs, rep.weeks)]
+        week_rows = []
+        for (label, ws_, we), (_, m) in zip(rep.week_defs, rep.weeks):
+            values, _ = week_targets(rep, label, ws_, we, m)
+            week_rows.append([short_week(label), *(v for k in money for v in (
+                round(values[k][0], 2), None if values[k][1] is None else round(values[k][1], 2)))])
         pos["week_targets"] = write_block(ds, pos["cumulative"][1] + 3,
                                           ["周", *(h for k in money for h in (f"{k}目标", k))], week_rows, "#,##0")
         pos["money"] = money
@@ -1319,8 +1389,8 @@ def write_report(path, df, rep, notes, source_name, week_mode):
         for j in (1, 2, 3, 4):
             ds.cell(i, j).border = BORDER
     natural = week_mode == "natural"
-    note(ds, len(DEFINITIONS) + 2, 1, bi(f"周度划分方式：{'自然周(周一~周日)' if natural else '每月按 7 天一段'}",
-                                         f"Semanas: {'segunda a domingo' if natural else 'blocos de 7 dias a partir do dia 1'}"))
+    note(ds, len(DEFINITIONS) + 2, 1, bi(f"周度划分方式：{'周一~周日（跨月的周算满 7 天）' if natural else '每月按 7 天一段'}",
+                                         f"Semanas: {'segunda a domingo (semanas que cruzam o mês com 7 dias)' if natural else 'blocos de 7 dias a partir do dia 1'}"))
     ds.column_dimensions["A"].width = 24
     ds.column_dimensions["B"].width = 60
     ds.column_dimensions["C"].width = 60
@@ -1359,18 +1429,32 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="售出明细表 → 门店经营报表")
     ap.add_argument("input", help="收银系统导出的 Excel（含「售出明细表」）")
     ap.add_argument("-o", "--output", help="输出路径，默认 ./门店经营报表_<开始>_<结束>.xlsx")
-    ap.add_argument("--month", help="只统计某个月，例如 2026-10")
-    ap.add_argument("--weeks", choices=["fixed", "natural"], default="fixed",
-                    help="fixed: 1-7日=W1…（默认）；natural: 周一~周日")
+    ap.add_argument("--month", help="报表月份，例如 2026-10（默认取文件里数据最多的月份）")
+    ap.add_argument("--weeks", choices=["natural", "fixed"], default="natural",
+                    help="natural: 周一~周日，跨月的周算满 7 天（默认）；fixed: 1-7日=W1…")
     ap.add_argument("--targets", help="目标 JSON，默认 targets/<门店>/<YYYY-MM>.json")
     ap.add_argument("--store", help="门店名（例如 Ibirapuera、Morumbi），默认按「权益归属门店」识别")
     args = ap.parse_args(argv)
 
-    df, sheet, months = load(args.input, args.month)
-    rep = build(df, args.weeks)
+    df_all, sheet, months = load(args.input)
+    period_of = df_all["日期"].dt.to_period("M").astype(str)
+    month = args.month or period_of[df_all["日期"].notna()].value_counts().idxmax()
+    df = df_all[(period_of == month) | df_all["日期"].isna()].copy()
+    if df["日期"].isna().all():
+        raise SystemExit(f"文件里没有 {month} 的数据（有：{', '.join(months)}）")
+    df.attrs["store"] = df_all.attrs.get("store")
+    rep = build(df, args.weeks, df_all)
     rep.store = args.store or df.attrs.get("store")
     rep.targets = load_targets(args.targets, rep.start, rep.store)
-    notes = checks(df, months, args.month, sheet, rep.staff)
+    if rep.targets:  # 跨月的周：相邻月份有目标文件就用它补上那几天
+        rep.neighbor_targets = {}
+        for d in (rep.week_defs[0][1], rep.week_defs[-1][2]):
+            key = f"{d:%Y-%m}"
+            if key != month and key not in rep.neighbor_targets:
+                tg = load_targets(None, date(d.year, d.month, 1), rep.store)
+                if tg:
+                    rep.neighbor_targets[key] = tg
+    notes = checks(df, df_all, months, month, sheet, rep)
     notes.insert(0, bi(f"门店：{rep.store or '未识别'}" + ("（--store 指定）" if args.store else "（按权益归属门店识别）"),
                        f"Loja: {rep.store or 'não identificada'}"))
     if rep.targets:

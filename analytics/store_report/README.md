@@ -11,8 +11,8 @@
 
 ```bash
 python3 analytics/store_report/store_report.py 售出明细.xlsx -o reports/周报_Ibirapuera_20261001_20261018.xlsx
-python3 analytics/store_report/store_report.py 售出明细.xlsx --month 2026-10      # 文件含多个月时只取某月
-python3 analytics/store_report/store_report.py 售出明细.xlsx --weeks natural      # 周一~周日 自然周
+python3 analytics/store_report/store_report.py 售出明细.xlsx --month 2026-10      # 指定报表月份（默认取数据最多的月份）
+python3 analytics/store_report/store_report.py 售出明细.xlsx --weeks fixed        # 改回 1-7日=W1…（默认 周一~周日）
 python3 analytics/store_report/store_report.py 售出明细.xlsx --targets 目标.json  # 指定目标文件
 python3 analytics/store_report/store_report.py 售出明细.xlsx --store Morumbi      # 指定门店
 ```
@@ -92,7 +92,7 @@ python3 analytics/store_report/store_report.py 售出明细.xlsx --store Morumbi
 - **组合支付**：一行用两种方式付款时，系统会多出一行「数量 0」的拆分行。金额照算，不算客次，员工跟原行（2026-10 Morumbi 有 3 行）。
 - **「品项」支付** = 体验券里包含的单个项目的核销，按代金券核销处理（算新客客次）。
 - **类型=产品**（零售产品，如护发油）不计入权益金和营业额，在「数据检查」里单独列出。
-- **周度**：默认 1–7 日=W1、8–14=W2、15–21=W3、22–28=W4、29 日–月底=W5（按账务日期）；还没到的周留空，进行中的周标「截至 xx/xx」。
+- **周度**：默认 **周一~周日**（用户 2026-10-25 定的）。W1 = 包含 1 号的那一周，从那周的周一开始；跨月的周算满 7 天（例如 2026-10 的 W1 = 9/28–10/4，W5 = 10/26–11/1）。所以**导出明细时从 W1 的周一开始导**（10 月从 9/28 导）。上月/下月的那几天只进周度数据，月度、员工月度、每日和目标只算本月；文件没覆盖到 W1 的周一时，W1 标「从 xx/xx」并在数据检查里提醒。跨月的周目标：相邻月份有目标文件就用它补上那几天，没有就只比较本月的那几天（目标达成页会注明）。还没到的周留空，进行中的周标「截至 xx/xx」。`--weeks fixed` 可改回 1–7 日=W1 的旧口径。
 - **未指定员工（线上购券）**：明细里没填员工的记录（多为客人线上买券），单列一行，保证员工合计 = 月度总数。
 - **员工名**：自动合并多余空格（如 `Thalita  Silvestre` → `Thalita Silvestre`）。
 - 新出现的支付方式会默认按「现金类」计入权益金和二次券，并在「数据检查」里标红提醒，需要时在 `KNOWN_PAY_METHODS` / `pay_kind()` 里调整。
