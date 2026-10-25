@@ -39,10 +39,12 @@ KNOWN_PAY_METHODS = {
 
 MONTH_METRICS = ["权益金", "营业额", "总客次", "会员客次", "新客客次", "网红/邀约",
                  "成交人数", "成交客单", "二次券成交数", "体验客单价", "叠加率", "新客成交率", "人效"]
-HELPER_METRICS = ["套餐成交金额", "数量合计", "护理师人天"]
+HELPER_METRICS = ["套餐成交金额", "项目次数", "护理师人天"]
 STAFF_METRICS = ["业绩", "营业额", "总客次", "成交人数", "二次券成交人数", "新客成交率"]
 STAFF_HELPERS = ["新客客次"]
 CUSTOMER_TYPES = ["新客客次", "会员客次", "网红/邀约"]
+MIX_TYPES = ["新客项目次数", "会员项目次数", "网红/邀约项目次数"]   # 项目分类页按项目次数统计
+VISIT_TYPE_COL = {"会员": "会员项目次数", "网红": "网红/邀约项目次数", "新客": "新客项目次数"}
 UNASSIGNED = "未指定员工"
 # 权益金拆解（用户 2026-10-25 定）：卖套餐 / 二次券 / 体验 / 线上卖券，四项相加 = 权益金
 BREAKDOWN = ["卖套餐", "二次券", "体验", "线上卖券"]
@@ -58,7 +60,7 @@ METRIC_FORMATS = {
     "叠加率": "0.00", "套餐成交金额": "#,##0.00", "业绩": "#,##0.00", "平均单价": "#,##0.00",
     **{k: "#,##0.00" for k in BREAKDOWN},
     "人效": "0.00", "日均上班护理师": "0.0",
-    "客次占比": "0.0%", "营业额占比": "0.0%", "新客成交率": "0.00%", "月达成率": "0.0%", "累计达成率": "0.0%",
+    "客次占比": "0.0%", "项目次数占比": "0.0%", "营业额占比": "0.0%", "新客成交率": "0.00%", "月达成率": "0.0%", "累计达成率": "0.0%",
 }
 
 # ---------------------------------------------------------------- 中葡双语
@@ -71,6 +73,9 @@ PT = {
     "体验客单价": "Ticket Médio Atendimento", "叠加率": "Itens por Atendimento", "新客成交率": "Conversão Novos Clientes",
     "业绩": "Vendas", "二次券成交人数": "Clientes Voucher Retorno", "套餐成交金额": "Valor em Pacotes",
     "数量合计": "Total de Itens", "客户人数": "Clientes Únicos", "客次占比": "% Atendimentos",
+    "项目次数": "Serviços Realizados", "项目次数占比": "% Serviços", "新客项目次数": "Serviços Novos Clientes",
+    "会员项目次数": "Serviços Clientes Pacote", "网红/邀约项目次数": "Serviços Influencers/Convites",
+    "按分类 · 周度项目次数": "Serviços por Categoria e Semana",
     "营业额占比": "% Receita", "平均单价": "Preço Médio",
     "卖套餐": "Pacotes", "二次券": "Vouchers de Retorno", "体验": "Experiência", "线上卖券": "Vouchers Online",
     "权益金拆解": "Composição das Vendas", "占比": "% do Total",
@@ -145,24 +150,25 @@ DEFINITIONS = [
             "当天用券做的项目先抵之前买的券、再抵当天登记的线上券，剩下的才抵店里现买的券。"),
     ("线上卖券", "支付方式 = 开业券（客人线上已付）的 权益行和项目行。线上卖券没有销售员工，不算员工业绩。"),
     ("营业额", "类型=项目 的「支付金额」合计（含代金券/套餐/免单核销的项目价值）。"),
-    ("总客次", "类型=项目 的行数（每做一个项目算 1 客次；退款单扣减）。"),
-    ("会员客次", "类型=项目 且 支付方式=套餐 的行数。"),
-    ("新客客次", "总客次 − 会员客次 − 网红/邀约（表内公式）。"),
-    ("网红/邀约", "类型=项目 且 支付方式=免单类 的行数。"),
+    ("总客次", "到店次数：同一客户同一天来店算 1 客次，不管做了几个项目（2026-10-25 起；之前是按项目行数算）。"
+              "整次到店都退款的不算。"),
+    ("会员客次", "会员的到店次数：那次到店有套餐核销，或客户编号是字母+数字（如 B14，会员用券或直接付钱也算会员）。"),
+    ("新客客次", "总客次 − 会员客次 − 网红/邀约（表内公式），即客户编号是纯数字、没用套餐也没免单的到店。"),
+    ("网红/邀约", "那次到店有免单类付款（没有套餐核销）的到店次数。"),
     ("成交人数", "类型=权益、分类=套餐，现金类支付合计>0 的客户人数（按客户去重）。"),
     ("成交客单", "套餐成交金额 ÷ 成交人数（表内公式）。套餐成交金额 = 类型=权益、分类=套餐 的「现金类支付」合计。"),
     ("二次券成交数", "「二次券」的张数：店里现场掏钱买的代金券（现金/卡/PIX，或组合支付里有现金部分），去掉当天就用掉的（算体验）。"),
     ("体验客单价", "营业额 ÷ 总客次（表内公式）。"),
-    ("叠加率", "数量合计 ÷ 总客次（表内公式）。数量合计 = 明细表全部行（项目+权益）的「数量」合计。"),
+    ("叠加率", "项目次数 ÷ 总客次（表内公式）：平均每次到店做几个项目。项目次数 = 类型=项目 的行数（组合支付的拆分行不算，退款扣减）。"),
     ("新客成交率", "成交人数 ÷ 新客客次 × 100%（表内公式）。新客客次为 0 时留空。"),
     ("员工·业绩", "该员工名下的 卖套餐 + 二次券 + 体验（不含线上卖券）。明细里「实业绩」列全为 0，故不用。"),
-    ("员工·营业额/总客次", "该员工名下的项目营业额 / 项目行数，口径同上。"),
+    ("员工·营业额/总客次", "该员工名下的项目营业额 / 该员工服务的到店次数（一次到店有两位员工服务时，两人各算 1 次）。"),
     ("员工·成交人数", "该员工名下买套餐的客户人数（去重）。"),
     ("员工·二次券成交人数", "该员工名下买「二次券」的客户人数（去重，当天就用掉的券不算）。"),
     ("员工·新客成交率", "该员工名下成交人数 ÷ 该员工服务的新客客次（灰色「计算用:新客客次」列）。"
                      "只卖不做项目的员工新客客次为 0，成交率留空。"),
-    ("项目分类", "类型=项目 的行按收银系统「分类」汇总；新客/会员/网红 的划分与上面客次口径相同；"
-                "客户人数=做过该分类项目的去重客户数；平均单价=营业额÷总客次。"),
+    ("项目分类", "类型=项目 的行按收银系统「分类」汇总，按项目次数算（一次到店做两个分类的项目各算 1 次）；"
+                "新客/会员/网红 按那次到店的类型；客户人数=做过该分类项目的去重客户数；平均单价=营业额÷项目次数。"),
     ("月达成率", "实际 ÷ 月目标。目标来自 targets/<YYYY-MM>.json（用户每月提供）。"),
     ("目标进度", "按「每日目标」累计到报表最后一天占全月的比例（休息日权重为 0），比单纯按天数算更准。"),
     ("同期目标 / 同期达成率", "累加型指标（权益金、营业额、总客次等）：同期目标 = 月目标 × 目标进度；"
@@ -182,22 +188,22 @@ DEFINITIONS_PT = {
     "体验": "Serviços pagos na hora (linhas 项目 pagas com dinheiro/cartão/PIX) + vouchers comprados na loja e usados no mesmo dia. «Mesmo dia» é estimado por cliente e dia: os serviços pagos com voucher consomem primeiro vouchers comprados antes, depois vouchers online do dia, e só então os comprados na loja.",
     "线上卖券": "Linhas 权益 e 项目 pagas com 开业券 (voucher comprado online). Não têm vendedora, por isso não entram nas vendas da equipe.",
     "营业额": "Soma do «valor pago» das linhas tipo 项目 (serviços), incluindo serviços pagos com voucher, pacote ou cortesia.",
-    "总客次": "Número de linhas tipo 项目 (cada serviço realizado = 1 atendimento; estornos descontam).",
-    "会员客次": "Linhas tipo 项目 pagas com pacote (套餐).",
+    "总客次": "Número de visitas: o mesmo cliente no mesmo dia = 1 atendimento, não importa quantos serviços fez (desde 25/10/2026; antes contava cada serviço). Visita totalmente estornada não conta.",
+    "会员客次": "Visitas de clientes de pacote: houve uso de pacote na visita ou o código do cliente tem letra + número (ex.: B14) — cliente de pacote que pagou com voucher ou na hora também conta aqui.",
     "新客客次": "Total de atendimentos − atendimentos de pacote − influencers/convites (fórmula na planilha).",
-    "网红/邀约": "Linhas tipo 项目 pagas como cortesia (免单类).",
+    "网红/邀约": "Visitas com pagamento de cortesia (免单类) e sem uso de pacote.",
     "成交人数": "Número de clientes (sem repetir) que compraram pacote com pagamento em dinheiro/cartão/PIX > 0.",
     "成交客单": "Valor em pacotes ÷ fechamentos de pacote (fórmula). Valor em pacotes = «pagamento em dinheiro» das vendas de pacote.",
     "二次券成交数": "Quantidade de «vouchers de retorno»: vendidos na loja (dinheiro/cartão/PIX ou parte em dinheiro), sem os usados no mesmo dia (esses contam como experiência).",
     "体验客单价": "Receita de serviços ÷ total de atendimentos (fórmula).",
-    "叠加率": "Total de itens ÷ total de atendimentos (fórmula). Total de itens = soma da «quantidade» de todas as linhas.",
+    "叠加率": "Serviços ÷ visitas (fórmula): quantos serviços por visita, em média. Serviços = linhas tipo 项目 (sem linhas de pagamento dividido; estornos descontam).",
     "新客成交率": "Fechamentos de pacote ÷ atendimentos de novos clientes × 100% (fórmula). Fica em branco se não houver novos clientes.",
     "员工·业绩": "Pacotes + vouchers de retorno + experiência no nome da colaboradora (sem vouchers online). A coluna 实业绩 do sistema está toda zerada, por isso não é usada.",
-    "员工·营业额/总客次": "Receita de serviços / número de serviços realizados pela colaboradora.",
+    "员工·营业额/总客次": "Receita de serviços / visitas atendidas pela colaboradora (se duas atenderam a mesma visita, conta para as duas).",
     "员工·成交人数": "Clientes (sem repetir) que compraram pacote com a colaboradora.",
     "员工·二次券成交人数": "Clientes (sem repetir) que compraram voucher de retorno com a colaboradora (vouchers usados no mesmo dia não contam).",
     "员工·新客成交率": "Fechamentos da colaboradora ÷ atendimentos de novos clientes que ela fez (coluna cinza «Base»). Quem só vende e não atende fica em branco.",
-    "项目分类": "Serviços (linhas tipo 项目) agrupados pela «categoria» do sistema; novos/pacote/influencers seguem o mesmo critério; clientes únicos = clientes sem repetir; preço médio = receita ÷ atendimentos.",
+    "项目分类": "Serviços (linhas tipo 项目) por «categoria» do sistema, contados por serviço (uma visita com duas categorias conta em cada uma); novos/pacote/influencers pelo tipo da visita; clientes únicos = clientes sem repetir; preço médio = receita ÷ serviços.",
     "月达成率": "Realizado ÷ meta do mês. Metas vêm de targets/<AAAA-MM>.json (enviadas todo mês).",
     "目标进度": "Quanto da meta do mês deveria estar feito até o último dia do relatório, somando as metas diárias (dias fechados = 0).",
     "同期目标 / 同期达成率": "Indicadores somáveis (vendas, receita, atendimentos): meta até hoje = meta do mês × progresso esperado. Indicadores de taxa (conversão, ticket médio): meta até hoje = meta do mês. ≥ 100% = ✓, abaixo = ✗.",
@@ -306,6 +312,30 @@ def classify_rights(df):
     return df
 
 
+def classify_visits(df):
+    """客次 = 到店次数：同一客户同一天来店算 1 次，不管做几个项目（做了几个项目看叠加率 = 项目次数 ÷ 客次）。
+    每次到店的类型：有套餐核销 = 会员；否则有免单 = 网红/邀约；否则看客户编号——会员编号是字母+数字（如 B14），
+    新客是纯数字（用户 2026-10-25 定）。"""
+    proj = (df["类型"] == "项目") & df["日期"].notna()
+    who = df["客户"].astype(object).where(df["客户"].notna(), "第" + df.index.astype(str) + "行")
+    df["到店键"] = None
+    df.loc[proj, "到店键"] = who[proj].astype(str) + "|" + df.loc[proj, "日期"].dt.strftime("%Y-%m-%d")
+    p = df[proj]
+    visit = p.groupby("到店键")
+    has = lambda kind: visit["支付归类"].transform(lambda x: (x == kind).any())
+    code = p["客户编号"].astype(str) if "客户编号" in p.columns else pd.Series("", index=p.index)
+    member_code = code.str.contains(r"[A-Za-z]", regex=True)
+    kind = pd.Series("新客", index=p.index)
+    kind[member_code] = "会员"
+    kind[has("免单")] = "网红"
+    kind[has("套餐")] = "会员"
+    df["访客类型"] = None
+    df.loc[p.index, "访客类型"] = kind
+    df["到店有效"] = False
+    df.loc[p.index, "到店有效"] = visit["客次"].transform("sum") > 0   # 整次到店都退款了就不算
+    return df
+
+
 def load(path, month=None):
     sheet, header_row = find_sheet(path)
     df = pd.read_excel(path, sheet_name=sheet, header=header_row,
@@ -338,6 +368,7 @@ def load(path, month=None):
     cust_id = df["客户编号"].map(clean_text) if "客户编号" in df.columns else None
     df["客户"] = cust_id.fillna(df["客户名称"]) if cust_id is not None else df["客户名称"]
     classify_rights(df)
+    classify_visits(df)
 
     months = sorted(df["日期"].dropna().dt.to_period("M").astype(str).unique())
     df.attrs["store"] = detect_store(df)
@@ -362,23 +393,24 @@ def compute(df):
     proj = df[df["类型"] == "项目"]
     right = df[df["类型"] == "权益"]
     package = right[right["分类"] == "套餐"]
+    visits = proj[(proj["客次"] > 0) & proj["到店有效"].astype(bool)].drop_duplicates("到店键")   # 见 classify_visits
     m = {k: df[col].sum() for k, col in BREAKDOWN_COLS.items()}   # 权益金拆解，见 classify_rights
     m.update({
         "权益金": sum(m[k] for k in BREAKDOWN),
         "营业额": proj["支付金额"].sum(),
-        "总客次": int(proj["客次"].sum()),
-        "会员客次": int(proj.loc[proj["支付归类"] == "套餐", "客次"].sum()),
-        "网红/邀约": int(proj.loc[proj["支付归类"] == "免单", "客次"].sum()),
+        "总客次": len(visits),
+        "会员客次": int((visits["访客类型"] == "会员").sum()),
+        "网红/邀约": int((visits["访客类型"] == "网红").sum()),
+        "项目次数": int(proj["客次"].sum()),
         "成交人数": paying_customers(package, "现金类支付"),
         "二次券成交数": int(round(df["二次券数"].sum())),
         "二次券成交人数": paying_customers(df[df["二次券数"] != 0], "二次券数"),
         "套餐成交金额": package["现金类支付"].sum(),
-        "数量合计": df["数量"].sum(),
     })
     m["新客客次"] = m["总客次"] - m["会员客次"] - m["网红/邀约"]
     m["成交客单"] = m["套餐成交金额"] / m["成交人数"] if m["成交人数"] else 0
     m["体验客单价"] = m["营业额"] / m["总客次"] if m["总客次"] else 0
-    m["叠加率"] = m["数量合计"] / m["总客次"] if m["总客次"] else 0
+    m["叠加率"] = m["项目次数"] / m["总客次"] if m["总客次"] else 0
     m["新客成交率"] = m["成交人数"] / m["新客客次"] if m["新客客次"] else None
     m["业绩"] = m["权益金"] - m["线上卖券"]   # 线上卖券没有销售员工，不算员工业绩
     # 人效 = 总客次 ÷ 护理师人天（每天有做项目的员工人数相加；来自售出明细，不是排班表）
@@ -390,19 +422,16 @@ def compute(df):
 
 
 def mix_table(proj, keys):
-    """项目行按 keys 汇总：总客次 / 新客 / 会员 / 网红 / 客户人数 / 营业额，按总客次降序。"""
-    cols = ["总客次", *CUSTOMER_TYPES, "客户人数", "营业额"]
+    """项目行按 keys 汇总：项目次数 / 新客·会员·网红的项目次数（按到店类型）/ 客户人数 / 营业额，按项目次数降序。"""
+    cols = ["项目次数", *MIX_TYPES, "客户人数", "营业额"]
     if proj.empty:
         return pd.DataFrame(columns=cols)
     sign = proj["客次"]
-    p = proj.assign(总客次=sign,
-                    会员客次=sign.where(proj["支付归类"] == "套餐", 0),
-                    **{"网红/邀约": sign.where(proj["支付归类"] == "免单", 0)})
-    p["新客客次"] = p["总客次"] - p["会员客次"] - p["网红/邀约"]
-    t = p.groupby(keys)[["总客次", *CUSTOMER_TYPES, "支付金额"]].sum().rename(columns={"支付金额": "营业额"})
+    p = proj.assign(项目次数=sign, **{col: sign.where(proj["访客类型"] == kind, 0) for kind, col in VISIT_TYPE_COL.items()})
+    t = p.groupby(keys)[["项目次数", *MIX_TYPES, "支付金额"]].sum().rename(columns={"支付金额": "营业额"})
     per_customer = p.groupby([*keys, "客户"])["客次"].sum().gt(0)
     t["客户人数"] = per_customer.groupby(level=list(range(len(keys)))).sum()
-    return t[cols].sort_values("总客次", ascending=False)
+    return t[cols].sort_values("项目次数", ascending=False)
 
 
 def week_ranges(year, month, mode):
@@ -475,13 +504,13 @@ def build(df, week_mode, context=None):
     categories = mix_table(proj, ["分类"])
     items = mix_table(proj, ["分类", "名称"])
     order = {c: i for i, c in enumerate(categories.index)}
-    items = items.sort_values(["总客次"], ascending=False).sort_index(
+    items = items.sort_values(["项目次数"], ascending=False).sort_index(
         level=0, key=lambda idx: idx.map(order), sort_remaining=False, kind="stable")
     ctx_proj = ctx[ctx["类型"] == "项目"].assign(分类=lambda x: x["分类"].fillna(UNCATEGORIZED))
     category_weeks = {
         metric: pd.DataFrame({text: in_days(ctx_proj, ws, we).groupby("分类")[col].sum()
                               for text, ws, we in active_weeks}).reindex(categories.index).fillna(0)
-        for metric, col in [("总客次", "客次"), ("营业额", "支付金额")]
+        for metric, col in [("项目次数", "客次"), ("营业额", "支付金额")]
     }
     first_day = date(start.year, start.month, 1)
     days = [first_day + timedelta(days=n) for n in range((end - first_day).days + 1)]
@@ -531,8 +560,8 @@ def checks(df, df_all, months, month, sheet, rep):
                       f"{splits} linhas de pagamento dividido (qtd. 0): valor conta, não contam como atendimento."))
     types = sorted(set(df["类型"].dropna()) - {"项目", "权益", "产品"})
     if types:
-        out.append(bi(f"⚠ 出现未识别的类型（只计入叠加率的数量合计）：{'、'.join(types)}",
-                      f"Tipo desconhecido (só entra no total de itens): {', '.join(types)}"))
+        out.append(bi(f"⚠ 出现未识别的类型（不计入任何指标）：{'、'.join(types)}",
+                      f"Tipo desconhecido (fora de todos os indicadores): {', '.join(types)}"))
     no_date = int(df["日期"].isna().sum())
     if no_date:
         out.append(bi(f"⚠ {no_date} 行没有账务日期，月度和员工数据已计入，周度数据未计入。",
@@ -659,7 +688,7 @@ CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
 MUTED = "7F7F7F"
 
 # 图表配色（dataviz 参考调色板）：同一个对象在所有图里用同一个颜色。
-COLORS = {"卖套餐": "6250D6", "二次券": "D69E00", "体验": "E05A8A", "线上卖券": "4BA3C3",
+COLORS = {"新客项目次数": "2A78D6", "会员项目次数": "EB6834", "网红/邀约项目次数": "1BAF7A", "卖套餐": "6250D6", "二次券": "D69E00", "体验": "E05A8A", "线上卖券": "4BA3C3",
           "权益金": "6250D6", "业绩": "6250D6", "营业额": "008300",
           "新客客次": "2A78D6", "会员客次": "EB6834", "网红/邀约": "1BAF7A"}
 BAR_COLOR = "2A78D6"
@@ -745,7 +774,7 @@ def write_metric_row(ws, row, col0, m):
         "新客客次": f"={cols['总客次']}{row}-{cols['会员客次']}{row}-{cols['网红/邀约']}{row}",
         "成交客单": f"=IF({cols['成交人数']}{row}=0,0,{hcols['套餐成交金额']}{row}/{cols['成交人数']}{row})",
         "体验客单价": f"=IF({cols['总客次']}{row}=0,0,{cols['营业额']}{row}/{cols['总客次']}{row})",
-        "叠加率": f"=IF({cols['总客次']}{row}=0,0,{hcols['数量合计']}{row}/{cols['总客次']}{row})",
+        "叠加率": f"=IF({cols['总客次']}{row}=0,0,{hcols['项目次数']}{row}/{cols['总客次']}{row})",
         "新客成交率": rate_formula(cols["成交人数"], cols["新客客次"], row),
         "人效": rate_formula(cols["总客次"], hcols["护理师人天"], row),
     }
@@ -954,8 +983,8 @@ def write_mix_block(ws, r, title, table, key_headers, with_share):
     """写一张 分类(或 分类+项目) 汇总表，返回下一个空行。占比、平均单价用公式。"""
     ws.cell(r, 1, title).font = font(bold=True, size=11)
     r += 1
-    metrics = ["总客次", *CUSTOMER_TYPES, "客户人数", "营业额"]
-    headers = [*key_headers, "总客次", *(["客次占比"] if with_share else []), *CUSTOMER_TYPES, "客户人数",
+    metrics = ["项目次数", *MIX_TYPES, "客户人数", "营业额"]
+    headers = [*key_headers, "项目次数", *(["项目次数占比"] if with_share else []), *MIX_TYPES, "客户人数",
                "营业额", *(["营业额占比"] if with_share else []), "平均单价"]
     for j, h in enumerate(headers, 1):
         style_header(ws.cell(r, j, h))
@@ -975,26 +1004,26 @@ def write_mix_block(ws, r, title, table, key_headers, with_share):
             style_value(ws[f"{col[k]}{row}"], k)
             ws[f"{col[k]}{row}"] = round(float(x[k]), 2)
         if with_share:
-            for share, base in [("客次占比", "总客次"), ("营业额占比", "营业额")]:
+            for share, base in [("项目次数占比", "项目次数"), ("营业额占比", "营业额")]:
                 ws[f"{col[share]}{row}"] = f"=IF({col[base]}${total}=0,0,{col[base]}{row}/{col[base]}${total})"
                 style_value(ws[f"{col[share]}{row}"], share)
-        ws[f"{col['平均单价']}{row}"] = f"=IF({col['总客次']}{row}=0,0,{col['营业额']}{row}/{col['总客次']}{row})"
+        ws[f"{col['平均单价']}{row}"] = f"=IF({col['项目次数']}{row}=0,0,{col['营业额']}{row}/{col['项目次数']}{row})"
         style_value(ws[f"{col['平均单价']}{row}"], "平均单价")
     if with_share:
         label_cell(ws, total, 1, "合计", bold=True)
         for h in headers[1:]:
             c = ws[f"{col[h]}{total}"]
-            if h in ("客次占比", "营业额占比"):
+            if h in ("项目次数占比", "营业额占比"):
                 c.value = f"=SUM({col[h]}{first}:{col[h]}{last})"
             elif h == "平均单价":
-                c.value = f"=IF({col['总客次']}{total}=0,0,{col['营业额']}{total}/{col['总客次']}{total})"
+                c.value = f"=IF({col['项目次数']}{total}=0,0,{col['营业额']}{total}/{col['项目次数']}{total})"
             elif h == "客户人数":
                 c.value = None  # 客户可能做过多个分类，人数不能直接相加
             else:
                 c.value = f"=SUM({col[h]}{first}:{col[h]}{last})"
             style_value(c, h)
             c.font = font(bold=True)
-    for k in ["总客次", "营业额"]:
+    for k in ["项目次数", "营业额"]:
         data_bar(ws, f"{col[k]}{first}:{col[k]}{last}")
     return (total if with_share else last) + 2
 
@@ -1076,12 +1105,13 @@ def write_category_sheet(wb, rep):
     ws = wb.create_sheet(SHEETS["项目分类"])
     ws["A1"] = f"项目分类统计 Categorias de Serviço  {period(rep)}"
     ws["A1"].font = font(size=14, bold=True)
-    note(ws, 2, 1, bi("只统计类型=项目（客人实际做的项目）；新客/会员/网红 的划分与经营报表一致；平均单价=营业额÷总客次。"
+    note(ws, 2, 1, bi("只统计类型=项目（客人实际做的项目），按项目次数算（一次到店做两个项目算 2 次）；"
+                      "新客/会员/网红 按那次到店的类型；平均单价=营业额÷项目次数。"
                       f"各项目明细见「{SHEETS['项目明细']}」。",
-                      "Só serviços realizados; novos/pacote/influencers como no relatório; preço médio = receita ÷ "
-                      f"atendimentos. Detalhe por serviço na aba «{SHEETS['项目明细']}»."))
+                      "Só serviços realizados, contados por serviço; novos/pacote/influencers pelo tipo da visita; "
+                      f"preço médio = receita ÷ serviços. Detalhe por serviço na aba «{SHEETS['项目明细']}»."))
     r = write_mix_block(ws, 4, "按分类（月度）", rep.categories, ["分类"], with_share=True)
-    r = write_week_matrix(ws, r, "按分类 · 周度客次", rep.category_weeks["总客次"], "总客次")
+    r = write_week_matrix(ws, r, "按分类 · 周度项目次数", rep.category_weeks["项目次数"], "项目次数")
     write_week_matrix(ws, r, "按分类 · 周度营业额", rep.category_weeks["营业额"], "营业额")
     ws.column_dimensions["A"].width = 24
     for j in range(2, 12):
@@ -1091,7 +1121,7 @@ def write_category_sheet(wb, rep):
     ws = wb.create_sheet(SHEETS["项目明细"])
     ws["A1"] = f"项目明细 Serviços  {period(rep)}"
     ws["A1"].font = font(size=14, bold=True)
-    note(ws, 2, 1, bi("每个项目做了多少次、谁在做（新客/会员/网红）、带来多少营业额；按分类分组，组内按客次排序。",
+    note(ws, 2, 1, bi("每个项目做了多少次、谁在做（新客/会员/网红）、带来多少营业额；按分类分组，组内按项目次数排序。",
                       "Quantas vezes cada serviço foi feito, para quem (novos/pacote/influencers) e quanto rendeu; "
                       "agrupado por categoria, ordenado por atendimentos."))
     write_mix_block(ws, 4, "按项目（月度）", rep.items, ["分类", "项目名称"], with_share=False)
@@ -1257,7 +1287,7 @@ def write_chart_data(wb, rep):
     pos["staff"] = write_block(ds, pos["weeks"][1] + 3, ["员工", "业绩", "营业额"],
                                [[name, round(m["业绩"], 2), round(m["营业额"], 2)] for name, m, _ in staff], "#,##0")
 
-    headers = ["分类", *CUSTOMER_TYPES, "营业额"]
+    headers = ["分类", *MIX_TYPES, "营业额"]
     pos["categories"] = write_block(ds, pos["staff"][1] + 3, headers,
                                     [[cat, *(round(float(x[k]), 2) for k in headers[1:])]
                                      for cat, x in rep.categories.iloc[::-1].iterrows()], "#,##0")
@@ -1377,7 +1407,7 @@ def write_tiles(ws, rep):
         ("成交客单", '"R$ "#,##0', m["成交客单"], "套餐金额 ÷ 成交人数 · Pacotes ÷ fechamentos"),
         ("二次券成交数", "#,##0", m["二次券成交数"], f"{m['二次券成交人数']} 位客户 · clientes"),
         ("体验客单价", '"R$ "#,##0.00', m["体验客单价"], "营业额 ÷ 总客次 · Receita ÷ atendimentos"),
-        ("叠加率", "0.00", m["叠加率"], "数量合计 ÷ 总客次 · Itens ÷ atendimentos"),
+        ("叠加率", "0.00", m["叠加率"], f"{m['项目次数']} 个项目 ÷ {m['总客次']} 客次 · serviços ÷ visitas"),
     ]
     height = 4 if goals else 3
     for i, (label, fmt_, value, sub) in enumerate(tiles):
@@ -1458,7 +1488,7 @@ def write_dashboard(wb, rep):
                    stacked=True),
         make_chart(ds, s0, s1, [2, 3], "员工 业绩 vs 营业额（R$）\nEquipe: vendas vs receita", horizontal=True,
                    height=staff_height),
-        make_chart(ds, c0, c1, [2, 3, 4], "项目分类客次（按客户类型）\nAtendimentos por categoria e tipo de cliente",
+        make_chart(ds, c0, c1, [2, 3, 4], "项目分类项目次数（按客户类型）\nServiços por categoria e tipo de cliente",
                    horizontal=True, stacked=True,
                    height=cat_height),
         make_chart(ds, c0, c1, [5], "项目分类营业额（R$）\nReceita por categoria", horizontal=True, labels=True,
@@ -1667,11 +1697,11 @@ def main(argv=None):
             k = t["指标"]
             print(f"  {k}：实际 {fmt(k, t['实际'])} / 月目标 {fmt(k, t['月目标'])} = {t['月达成率']:.1%}；"
                   f"同期目标 {fmt(k, t['同期目标'])}，同期达成 {t['同期达成率']:.1%} {'✓' if t['同期达成率'] >= 1 else '✗'}")
-    print("项目分类（总客次｜新客/会员/网红｜营业额）：")
-    total = rep.categories["总客次"].sum()
+    print("项目分类（项目次数｜新客/会员/网红｜营业额）：")
+    total = rep.categories["项目次数"].sum()
     for cat, x in rep.categories.iterrows():
-        print(f"  {cat}：{x['总客次']:.0f}（{x['总客次'] / total:.0%}）｜{x['新客客次']:.0f}/{x['会员客次']:.0f}/"
-              f"{x['网红/邀约']:.0f}｜{x['营业额']:,.2f}")
+        print(f"  {cat}：{x['项目次数']:.0f}（{x['项目次数'] / total:.0%}）｜{x['新客项目次数']:.0f}/{x['会员项目次数']:.0f}/"
+              f"{x['网红/邀约项目次数']:.0f}｜{x['营业额']:,.2f}")
     for line in notes:
         print(line)
 
