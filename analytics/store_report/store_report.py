@@ -244,7 +244,7 @@ def clean_text(v):
 
 
 def pay_kind(method):
-    m = method or ""
+    m = method if isinstance(method, str) else ""   # 退款单里有支付方式为空的行（读进来是 NaN）
     if "开业券" in m:
         return "开业券"
     if "免单" in m:
